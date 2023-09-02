@@ -19,6 +19,7 @@ body {
   margin: 0 10vw;
   height: 100vh;
   max-width: 100vw;
+  overflow-x: hidden;
 }
 main {
   max-height: 100%;
