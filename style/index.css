@@ -118,6 +118,9 @@ nav ul {
       text-wrap: balance;
       font-size: 3rem;
       margin: 0;
+      @media only screen and (width < 768px) {
+        align-self: center;
+      }
     }
     @media only screen and (width < 768px) {
       justify-self: center;
@@ -130,6 +133,9 @@ nav ul {
     width: fit-content;
     & .button {
       flex-grow: 1;
+    }
+    @media only screen and (width < 768px) {
+      align-self: center;
     }
   }
   & .hero-blob {
@@ -147,7 +153,7 @@ nav ul {
 .blob {
   position: absolute;
   border-radius: 100px;
-  filter: blur(75px) brightness(0.3);
+  filter: blur(75px) brightness(0.4);
   translate: -100px -100px;
   &.red {
     background-color: var(--red);
@@ -200,7 +206,7 @@ nav ul {
 }
 #about {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 3fr 1fr;
   gap: 2rem;
   margin-bottom: 6rem;
   & .about-image {
@@ -209,6 +215,8 @@ nav ul {
     align-items: center;
   }
   @media only screen and (width < 768px) {
+    grid-template-columns: auto;
+    grid-template-rows: 3fr 1fr;
     justify-content: center;
   }
 }
