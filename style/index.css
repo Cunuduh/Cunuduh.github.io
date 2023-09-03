@@ -20,6 +20,18 @@ body {
   height: 100vh;
   max-width: 100vw;
   overflow-x: hidden;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 64rem;
+    z-index: -1;
+    filter: url("#noise-filter");
+    background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,1) 100%);
+    opacity: 0.13;
+  }
 }
 main {
   max-width: 100%;
@@ -139,7 +151,7 @@ nav ul {
     justify-self: end;
     width: 100%;
     height: 100%;
-    z-index: -1;
+    z-index: -2;
   }
   @media only screen and (width < 768px) {
     grid-template-columns: 1fr;
@@ -148,7 +160,7 @@ nav ul {
 .blob {
   position: absolute;
   border-radius: 100px;
-  filter: blur(75px) brightness(0.4);
+  filter: blur(90px) brightness(0.4);
   translate: -100px -100px;
   &.red {
     background-color: var(--red);
