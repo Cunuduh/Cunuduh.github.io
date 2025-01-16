@@ -98,9 +98,8 @@ nav ul {
   }
 }
 .cool-gradient {
-  background: linear-gradient(120deg, #6e2e36 0%, #3c567c 50%, #3e6c4c 100%);
+  background: linear-gradient(120deg, #ff4f65 0%, #16beff 50%, #00ff4d 100%);
   background-size: 200% 200%;
-  filter: brightness(200%) saturate(200%);
   animation: gradient 7.5s ease infinite;
   background-clip: text;
   -webkit-background-clip: text;
