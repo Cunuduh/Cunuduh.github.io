@@ -236,6 +236,7 @@ nav ul {
   justify-content: center;
   max-width: 100%;
   overflow: hidden;
+  margin-bottom: 32rem;
   & .gallery-item {
     display: flex;
     flex-direction: column;
