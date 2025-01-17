@@ -114,7 +114,7 @@ nav ul {
   display: grid;
   align-items: center;
   grid-template-columns: 1fr 1fr;
-  margin-bottom: 32rem;
+  margin-bottom: 48rem;
   & .hero-text {
     display: flex;
     flex-direction: column;
@@ -253,4 +253,128 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal.active {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-content {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 40%) minmax(0, 60%);
+  grid-gap: 2rem;
+  background: #000;
+  border: 1px solid var(--txt-clr);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin: auto;
+  max-width: 90vw;
+  min-height: 80vh;
+  max-height: 90vh;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.modal-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  display: contents;
+}
+
+.modal-image {
+  margin: 0;
+  width: 100%;
+  height: auto;
+  grid-column: 2;
+  align-self: baseline;
+  justify-self: stretch;
+  & img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    border: unset;
+  }
+  & figcaption {
+    font-size: 1rem;
+    color: var(--sec-txt-clr);
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+}
+
+.modal-body p {
+  grid-column: 1;
+}
+
+@media only screen and (width < 768px) {
+  .modal-content {
+    grid-template-columns: 1fr;
+    grid-gap: 0;
+  }
+  
+  .modal-image {
+    grid-column: 1;
+    margin-top: 1rem;
+    max-height: 50vh;
+    order: -1;
+  }
+}
+
+.modal.active .modal-content {
+  transform: translateY(0);
+}
+
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--txt-clr);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  z-index: 6;
+}
+
+.close-button:hover {
+  color: var(--sec-txt-clr);
+}
+
+.modal hr {
+  border: none;
+  border-top: 1px solid var(--txt-clr);
+  margin: 1rem 0;
+}
+
+.modal-title {
+  font: var(--hero-title-font);
+  margin: 0;
+}
+
+.modal-credit {
+  color: var(--sec-txt-clr);
+  margin: 0.5rem 0 0 0;
 }
