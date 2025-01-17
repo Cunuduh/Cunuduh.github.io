@@ -49,12 +49,12 @@
     <h2 id="artwork">My artwork</h2>
     <div id="gallery">
       <div class="gallery-item">
-        <img src="img/story_quilt.jpg" alt="Placeholder" loading="lazy">
-        <a class="button" href="#">The Lechon</a>
+        <img src="img/story_quilt.jpg" alt="Story Quilt" loading="lazy">
+        <a class="button" href="#">Story Quilt</a>
       </div>
       <div class="gallery-item">
-        <img src="https://placehold.co/400" alt="Placeholder" loading="lazy">
-        <a class="button" href="#">Artwork 2</a>
+        <img src="img/hero_portrait.jpg" alt="Hero Portrait" loading="lazy">
+        <a class="button" href="#">Hero Portrait</a>
       </div>
       <div class="gallery-item">
         <img src="https://placehold.co/400" alt="Placeholder" loading="lazy">
@@ -99,13 +99,13 @@
 </body>
 <svg>
   <filter id='noise-filter'>
-    <feTurbulence 
-      type='fractalNoise'
-      baseFrequency='0.8'
-      numOctaves='2' <!-- Reduced octaves -->
+    <feTurbulence
+      type='fractalNoise' 
+      baseFrequency='0.6' 
       stitchTiles='stitch'/>
-    <feColorMatrix type="saturate" values="0"/>
-    <feBlend in="SourceGraphic" mode="overlay" />
+     <feColorMatrix in="colorNoise" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0" />
+        <feComposite operator="in" in2="SourceGraphic" result="monoNoise"/>
+        <feBlend in="SourceGraphic" in2="monoNoise" mode="screen" />
   </filter>
 </svg>
 </html>
