@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
   <link rel="stylesheet" href="style/index.css">
   <script src="script/index.js" defer></script>
+  <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
 </head>
 <div id="artwork-modal" class="modal">
   <button class="close-button">
@@ -20,7 +21,12 @@
       <h1 class="modal-title"></h1>
       <h3 class="modal-credit"></h3>
       <hr>
-      <div class="modal-body"></div>
+      <div class="modal-body">
+        <h3>Artist Statement</h3>
+        <p class="modal-text"></p>
+        <h3>Process Gallery</h3>
+        <div class="process-gallery"></div>
+      </div>
     </div>
     <figure class="modal-image"></figure>
   </div>
@@ -47,7 +53,7 @@
       </div>
     </div>
     <h2 id="artwork">My artwork</h2>
-    <div id="gallery">
+    <div id="artwork-gallery" class="gallery">
       <div class="gallery-item">
         <img src="img/story_quilt.jpg" alt="Story Quilt" loading="lazy">
         <a class="button" href="#">Story Quilt</a>
@@ -57,39 +63,47 @@
         <a class="button" href="#">Hero Portrait</a>
       </div>
       <div class="gallery-item">
-        <img src="https://placehold.co/400" alt="Placeholder" loading="lazy">
-        <a class="button" href="#">Artwork 3</a>
+        <img src="https://placehold.co/400" alt="Triptych" loading="lazy">
+        <a class="button" href="#">Triptych</a>
       </div>
       <div class="gallery-item">
-        <img src="https://placehold.co/400" alt="Placeholder" loading="lazy">
-        <a class="button" href="#">Artwork 4</a>
+        <img src="img/sound_amplifier.jpg" alt="Sound Amplifier" loading="lazy">
+        <a class="button" href="#">Sound Amplifier</a>
       </div>
       <div class="gallery-item">
-        <img src="https://placehold.co/400" alt="Placeholder" loading="lazy">
-        <a class="button" href="#">Artwork 5</a>
+        <img src="img/museum_mutant.jpg" alt="Museum Mutant" loading="lazy">
+        <a class="button" href="#">Museum Mutant</a>
+      </div>
+      <div class="gallery-item">
+        <img src="https://placehold.co/400x300" alt="Placeholder" loading="lazy">
+        <a class="button" href="#">Placeholder</a>
+      </div>
+      <div class="gallery-item">
+        <img src="https://placehold.co/500" alt="Placeholder" loading="lazy">
+        <a class="button" href="#">Placeholder</a>
+      </div>
+      <div class="gallery-item">
+        <img src="https://placehold.co/500" alt="Placeholder" loading="lazy">
+        <a class="button" href="#">Placeholder</a>
       </div>
     </div>
     <h2 id="programming">My programming work</h2>
-    <div id="gallery">
+    <div id="programming-gallery" class="gallery">
       <div class="gallery-item">
         <img src="img/was-it-worth-it.png" alt="Was it Worth It logo" style="image-rendering: crisp-edges;" loading="lazy">
         <a class="button" href="https://cunuduh.itch.io/was-it-worth-it">Was it Worth It?</a>
-        <p>This is a game I made using the Godot engine for my Grade 9 Gym summative, an anti-vaping PSA.</p>
       </div>
       <div class="gallery-item">
         <img src="img/speakeasy_simulator.png" alt="Speakeasy Simulator logo" style="image-rendering: crisp-edges;" loading="lazy">
         <a class="button" href="https://cunuduh.itch.io/speakeasy-simulator">Speakeasy Simulator</a>
-        <p>This is another video game I and others made in Godot for the Grade 10 History summative on 1920's speakeasies.</p>
       </div>
       <div class="gallery-item">
         <img src="img/stay_safe_in_science.png" alt="Stay Safe in Science logo" style="image-rendering: crisp-edges;" loading="lazy">
         <a class="button" href="https://cunuduh.itch.io/stay-safe-in-science">Stay Safe in Science</a>
-        <p>This is a game I made in Godot for a Grade 10 Science project, a lab safety PSA.</p>
       </div>
       <div class="gallery-item">
         <img src="https://placehold.co/400" alt="Placeholder" loading="lazy">
         <a class="button" href="#">Project 4</a>
-        <p>Placeholder text lalalalala</p>
       </div>
     </div>
   </main>
