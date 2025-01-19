@@ -39,14 +39,17 @@ main {
   max-width: 100%;
 }
 img {
-  outline: 1px solid var(--txt-clr);
-  outline-offset: -1px;
   max-width: 100%;
   max-height: 100%;
   object-fit: cover;
   border-radius: 0.5rem;
   box-sizing: border-box;
+  position: relative;
+  outline: 1px solid var(--txt-clr);
+  outline-offset: -1px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 1);
 }
+
 a {
   color: var(--txt-clr);
   text-decoration: none;
@@ -249,6 +252,7 @@ nav ul {
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    border-radius: 0.5rem;
     & img {
       width: 100%;
       height: auto;
@@ -261,7 +265,8 @@ nav ul {
       opacity: 0;
       padding: 2rem 1rem;
       font-size: 1.5rem;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
+      font-weight: bold;
       background: linear-gradient(to top,
         rgba(0, 0, 0, 0.8) 0%,
         rgba(0, 0, 0, 0.4) 50%,
@@ -276,15 +281,13 @@ nav ul {
       backdrop-filter: blur(8px);
       box-sizing: border-box;
       width: 100%;
-      border-radius: 0 0 0.5rem 0.5rem;
-      transform: translateY(150%);
+      border-radius: 0;
       transition: all 0.2s ease;
       &::before {
         opacity: 0.25;
         content: '';
         position: absolute;
         inset: 0;
-        transform: translateY(150%);
         transition: all 0.2s ease;
         mix-blend-mode: multiply;
         filter: url("#noise-filter");
@@ -295,13 +298,12 @@ nav ul {
           rgba(0, 0, 0, 0) 100%
         );
         background: rgba(0, 0, 0, 0.25);
-        border-radius: inherit;
+        border-radius: 0;
         z-index: -1;
       }
     }
 
     &:hover .button, &:hover .button::before, &:focus .button, &:focus .button::before {
-      transform: translateY(0);
       opacity: 1;
     }
   }
@@ -335,7 +337,11 @@ footer {
 .modal-content {
   position: relative;
   display: grid;
+  grid-template-areas:
+    "info image"
+    "gallery gallery";
   grid-template-columns: minmax(0, 40%) minmax(0, 60%);
+  grid-template-rows: auto auto;
   grid-gap: 2rem;
   background: #000;
   outline: 1px solid var(--txt-clr);
@@ -343,7 +349,7 @@ footer {
   padding: 2rem;
   margin: auto;
   width: 90vw;
-  height: 90vh;
+  height: 95vh;
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
@@ -352,9 +358,9 @@ footer {
   &::before {
     content: '';
     position: fixed;
-    border-radius: 256px;
+    border-radius: 10px;
     width: 90vw;
-    height: 90vh;
+    height: 95vh;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -368,9 +374,9 @@ footer {
   &::after {
     content: '';
     position: fixed;
-    border-radius: 16px;
+    border-radius: 10px;
     width: 90vw;
-    height: 90vh;
+    height: 95vh;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -382,6 +388,7 @@ footer {
   }
 }
 .modal-info {
+  grid-area: info;
   display: flex;
   flex-direction: column;
 }
@@ -391,10 +398,10 @@ footer {
 }
 
 .modal-image {
+  grid-area: image;
   margin: 0;
   width: 100%;
   height: auto;
-  grid-column: 2;
   align-self: flex-start;
   justify-self: stretch;
   & img {
@@ -402,6 +409,7 @@ footer {
     height: auto;
     object-fit: contain;
     border: unset;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 1);
   }
   & figcaption {
     font-size: 1rem;
@@ -415,8 +423,30 @@ footer {
   grid-column: 1;
 }
 
+.process-gallery {
+  grid-area: gallery;
+  display: block;
+  columns: 4;
+  column-fill: balance;
+  width: 100%;
+  gap: 1rem;
+  break-inside: avoid;
+  & img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    break-inside: avoid;
+  }
+}
+
 @media only screen and (width < 768px) {
   .modal-content {
+    grid-template-areas:
+      "image"
+      "info"
+      "gallery";
     grid-template-columns: 1fr;
     max-height: 90vh;
     overflow-y: auto;
@@ -437,6 +467,9 @@ footer {
   }
   .modal-body {
     display: block;
+  }
+  .process-gallery {
+    columns: 2;
   }
 }
 
@@ -475,16 +508,6 @@ footer {
 .modal-credit {
   color: var(--sec-txt-clr);
   margin: 0.5rem 0 0 0;
-}
-
-.process-gallery {
-  columns: 300px;
-}
-
-.process-gallery img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
 }
 
 @media only screen and (width < 768px) {
