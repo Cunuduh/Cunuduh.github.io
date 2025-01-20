@@ -85,6 +85,14 @@ const galleryData = {
         "img/sketchbook_process_4.jpg",
         "img/sketchbook_process_5.jpg",
         "img/sketchbook_process_6.jpg",
+      ],
+      processGalleryCaptions: [
+        "Observation drawing of a tree outside the school",
+        "Little media exploration sketch of graphite shading",
+        "Observation drawing of Zaid",
+        "Observation drawing of my hand",
+        "Artist inspiration drawing of Bosch's egg man",
+        "Two imagination drawings: Head full of fruits; Dream home"
       ]
     },
     {
@@ -106,17 +114,18 @@ const galleryData = {
 const modal = document.getElementById('artwork-modal');
 const closeButton = modal.querySelector('.close-button');
 
-function openModal(title, credit, flavour, content, image, processImages) {
+function openModal(title, credit, flavour, content, image, processImages, processGalleryCaptions) {
   if (!content || !image) return;
   const modalBody = modal.querySelector('.modal-body');
   modalBody.querySelector('.modal-text').innerHTML = content;
   const processGallery = modal.querySelector('.process-gallery');
   processGallery.innerHTML = '';
   if (processImages) {
-    processImages.forEach(image => {
+    processImages.forEach((image, index) => {
       const img = document.createElement('img');
       img.src = image;
-      img.alt = `${title} process image`;
+      img.alt = processGalleryCaptions?.[index] || `${title} process image`;
+      img.dataset.caption = processGalleryCaptions?.[index] || '';
       img.loading = 'lazy';
       processGallery.appendChild(img);
     });
@@ -127,6 +136,7 @@ function openModal(title, credit, flavour, content, image, processImages) {
   const modalImage = modal.querySelector('.modal-image');
   const modalImg = document.createElement('img');
   modalImg.src = image;
+  modalImg.dataset.caption = credit;
   modalImg.alt = title;
   modalImg.loading = 'lazy';
   modalImg.onload = () => {
@@ -149,13 +159,12 @@ function openModal(title, credit, flavour, content, image, processImages) {
   };
   modalImage.innerHTML = '';
   modalImage.appendChild(modalImg);
+  setupProcessGalleryImageClicks();
   if (credit) {
     const figcaption = document.createElement('figcaption');
     figcaption.innerHTML = credit;
     modalImage.appendChild(figcaption);
   }
-
-
 
   document.documentElement.style.setProperty('--modal-bg-img', `url("/${image}")`);
   modal.classList.add('active');
@@ -167,26 +176,85 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
-// Close modal when clicking close button
+function setupProcessGalleryImageClicks() {
+  const processImages = document.querySelectorAll('.process-gallery img');
+  const mainImage = document.querySelector('.modal-image img');
+  
+  mainImage.addEventListener('click', () => {
+    const expandedView = document.createElement('div');
+    expandedView.className = 'expanded-image';
+
+    const figure = document.createElement('figure');
+    
+    const expandedImg = document.createElement('img');
+    expandedImg.src = mainImage.src;
+    expandedImg.alt = mainImage.alt;
+
+    figure.appendChild(expandedImg);
+
+    if (mainImage.dataset.caption) {
+      const figcaption = document.createElement('figcaption');
+      figcaption.innerHTML = mainImage.dataset.caption;
+      figure.appendChild(figcaption);
+    }
+    expandedView.appendChild(figure);
+
+    document.body.appendChild(expandedView);
+
+    expandedView.addEventListener('click', () => {
+      expandedView.remove();
+    });
+  });
+
+  processImages.forEach(img => {
+    img.addEventListener('click', (e) => {
+      const expandedView = document.createElement('div');
+      expandedView.className = 'expanded-image';
+      
+      const figure = document.createElement('figure');
+      
+      const expandedImg = document.createElement('img');
+      expandedImg.src = e.target.src;
+      expandedImg.alt = e.target.alt;
+      
+      figure.appendChild(expandedImg);
+      
+      if (e.target.dataset.caption) {
+        const figcaption = document.createElement('figcaption');
+        figcaption.textContent = e.target.dataset.caption;
+        figure.appendChild(figcaption);
+      }
+      
+      expandedView.appendChild(figure);
+      document.body.appendChild(expandedView);
+      
+      expandedView.addEventListener('click', () => {
+        expandedView.remove();
+      });
+    });
+  });
+}
+
 closeButton.addEventListener('click', closeModal);
 
-// Close modal when clicking outside
 modal.addEventListener('click', (e) => {
   if (e.target === modal) closeModal();
 });
 
-// Close modal with Escape key
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && modal.classList.contains('active')) {
     closeModal();
   }
 });
-
 document.querySelectorAll('#artwork-gallery .gallery-item .button').forEach(button => {
   button.addEventListener('click', (e) => {
     e.preventDefault();
-    const title = e.target.textContent;
+  });
+});
 
+document.querySelectorAll('#artwork-gallery .gallery-item').forEach(img => {
+  img.addEventListener('click', (e) => {
+    const title = img.querySelector('.button').textContent;
     const artworkData = galleryData.artwork.find(item => item.title === title);
     if (artworkData) {
       openModal(
@@ -195,7 +263,8 @@ document.querySelectorAll('#artwork-gallery .gallery-item .button').forEach(butt
         artworkData.flavour,
         artworkData.description,
         artworkData.image,
-        artworkData.processGallery
+        artworkData.processGallery,
+        artworkData.processGalleryCaptions
       );
     }
   });
