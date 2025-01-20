@@ -253,6 +253,7 @@ nav ul {
     position: relative;
     overflow: hidden;
     border-radius: 0.5rem;
+    cursor: pointer;
     & img {
       width: 100%;
       height: auto;
@@ -410,6 +411,7 @@ footer {
     object-fit: contain;
     border: unset;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 1);
+    cursor: zoom-in;
   }
   & figcaption {
     font-size: 1rem;
@@ -438,6 +440,45 @@ footer {
     object-fit: cover;
     margin-bottom: 1rem;
     break-inside: avoid;
+    cursor: zoom-in;
+  }
+}
+
+.expanded-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  cursor: zoom-out;
+  box-sizing: border-box;
+  & figure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 90vw;
+    max-height: 90vh;
+    margin: 0;
+    & img {
+      max-width: 100%;
+      width: fit-content;
+      max-height: 90vh;
+      object-fit: contain;
+      box-shadow: none;
+    }
+    & figcaption {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      text-shadow: 0 8px 16px rgba(0, 0, 0, 0.8);
+      color: var(--txt-clr);
+    }
   }
 }
 
