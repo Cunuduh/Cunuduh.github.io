@@ -289,11 +289,16 @@ nav ul {
     overflow: hidden;
     border-radius: 0.5rem;
     cursor: pointer;
+    outline: 1px solid var(--txt-clr);
     & img {
+      transition: transform 0.2s ease;
+      outline: none;
       width: 100%;
       height: auto;
     }
-
+    &:hover img {
+      transform: scale(1.1);
+    }
     & .button {
       position: absolute;
       bottom: 0;
@@ -418,8 +423,8 @@ footer {
     background-image: var(--modal-bg-img);
     background-size: cover;
     background-position: center;
-    -webkit-filter: blur(128px) brightness(0.5) saturate(0.5);
-            filter: blur(128px) brightness(0.5) saturate(0.5);
+    -webkit-filter: blur(128px) brightness(0.75) saturate(0.5);
+            filter: blur(128px) brightness(0.75) saturate(0.5);
     -webkit-clip-path: border-box;
             clip-path: border-box;
     z-index: -2;
