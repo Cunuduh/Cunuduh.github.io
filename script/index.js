@@ -103,10 +103,11 @@ const galleryData = {
       image: "img/beabadoobee.jpg",
     },
     {
-      title: "Me, Grade 11",
-      flavour: "(remember to take a picture in class me!!)",
+      title: "Final Remarks",
+      credit: "<i>Mount Pinatubo</i>, Glae Alejo (July 2024). Digital painting, Home.",
+      flavour: "+ a digital painting of Mount Pinatubo",
       description: `The Museum Mutant painting stands out as my favorite project this year, marking a significant return to acrylic painting—my first serious engagement with the medium since Grade 8. The experience of channeling my emotions and experiences through various techniques like impasto and wet-in-wet brought me unexpected joy and artistic fulfillment. However, my journey through this year's projects wasn't without its challenges. The Triptych project initially presented the biggest hurdle, primarily due to creative blockage when faced with the theme "life as a teen." Breaking through this mental barrier required deep introspection, ultimately leading me to confront my most profound yet unspoken struggle—gender identity. Despite the sensitivity of this topic, especially in 2025, I chose to embrace it as my subject matter. Ironically, this same challenging project became the artwork I'm most proud of, representing more than just technical skill—it marks my first step toward authentic self-expression. The difficulty of creating a painting about gender dysphoria makes it all the more meaningful, serving as one of many small cracks in the metaphorical cell I've constructed around myself. Reflecting on the course structure, I particularly appreciated the collaborative elements in the Story Quilt project and the peer feedback component of the Triptych. I believe future grade 11 students would benefit from more opportunities for peer collaboration, perhaps through large-scale group projects like a shared canvas mural. My experience in this course has been overwhelmingly positive, validating my decision to enroll through MyBlueprint. As I conclude this Grade 11 portion of my portfolio, I look forward to what lies ahead. The best is yet to come! 👋`,
-      image: "https://placehold.co/500"
+      image: "img/mount_pinatubo.png",
     }
   ],
 };
