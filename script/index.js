@@ -270,3 +270,18 @@ document.querySelectorAll('#artwork-gallery .gallery-item').forEach(img => {
     }
   });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const nav = document.querySelector('nav');
+  const scrollThreshold = 100;
+  
+  function updateNavBackground() {
+    if (window.scrollY > scrollThreshold) {
+      nav.classList.add('nav-scrolled');
+    } else {
+      nav.classList.remove('nav-scrolled');
+    }
+  }
+  
+  window.addEventListener('scroll', updateNavBackground);
+});
