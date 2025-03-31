@@ -1,17 +1,29 @@
 :root {
-  background-color: #000;
+  background-color: #1e1e2e; /* Catppuccin Mocha base */
   scroll-behavior: smooth;
-  --main-font: calc(0.75rem + 0.25vw) "Inter", sans-serif;
-  --nav-font: bold calc(0.75rem + 0.75vw) "Inter", sans-serif;
-  --hero-title-font: bold calc(2rem + 2vw) "Inter", sans-serif;
-  --txt-clr: #ddd;
-  --sec-txt-clr: #bbb;
-  --red: #6e2e36;
-  --blue: #3c567c;
-  --green: #3e6c4c;
+  --main-font: calc(0.75rem + 0.25vw) "Fira Code", monospace;
+  --nav-font: bold calc(0.75rem + 0.75vw) "Fira Code", monospace;
+  --hero-title-font: bold calc(2rem + 2vw) "Fira Code", monospace;
+  --txt-clr: #cdd6f4; /* Catppuccin Mocha text */
+  --sec-txt-clr: #a6adc8; /* Catppuccin Mocha subtext0 */
+  --red: #f38ba8; /* Catppuccin Mocha red */
+  --pink: #f5c2e7; /* Catppuccin Mocha pink */
+  --mauve: #cba6f7; /* Catppuccin Mocha mauve */
+  --lavender: #b4befe; /* Catppuccin Mocha lavender */
+  --blue: #89b4fa; /* Catppuccin Mocha blue */
+  --sapphire: #74c7ec; /* Catppuccin Mocha sapphire */
+  --sky: #89dceb; /* Catppuccin Mocha sky */
+  --teal: #94e2d5; /* Catppuccin Mocha teal */
+  --green: #a6e3a1; /* Catppuccin Mocha green */
+  --yellow: #f9e2af; /* Catppuccin Mocha yellow */
+  --peach: #fab387; /* Catppuccin Mocha peach */
+  --maroon: #eba0ac; /* Catppuccin Mocha maroon */
+  --surface0: #313244; /* Catppuccin Mocha surface0 */
+  --surface1: #45475a; /* Catppuccin Mocha surface1 */
+  --surface2: #585b70; /* Catppuccin Mocha surface2 */
   --modal-bg-img: '';
   @media only screen and (width < 768px) {
-    --hero-title-font: bold calc(1.75rem + 1.25vw) "Inter", sans-serif;
+    --hero-title-font: bold calc(1.75rem + 1.25vw) "Fira Code", monospace;
   }
 }
 body {
@@ -31,7 +43,7 @@ body {
     z-index: -1;
     -webkit-filter: url("#noise-filter");
             filter: url("#noise-filter");
-    background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,1) 60%);
+    background: linear-gradient(0deg, rgba(30,30,46,0) 0%, rgba(30,30,46,0.5) 30%, rgba(30,30,46,1) 60%);
     opacity: 0.13;
     pointer-events: none;
   }
