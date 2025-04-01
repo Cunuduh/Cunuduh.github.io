@@ -284,4 +284,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   window.addEventListener('scroll', updateNavBackground);
+  
+  const parallaxImage = document.querySelector('.parallax-image');
+  const parallaxFade = document.querySelector('.parallax-fade');
+  const speed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--parallax-speed').trim()) || 0.6;
+  
+  function updateParallax() {
+    const yOffset = window.pageYOffset;
+    const transformValue = `translateY(-${yOffset * speed}px)`;
+    
+    parallaxImage.style.transform = transformValue;
+    parallaxFade.style.transform = transformValue;
+  }
+  
+  window.addEventListener('scroll', updateParallax);
+  window.addEventListener('resize', updateParallax);
+  
+  updateNavBackground();
+  updateParallax();
 });
