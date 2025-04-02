@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   background-color: #1e1e2e; /* Catppuccin Mocha base */
   scroll-behavior: smooth;
   scrollbar-width: thin;
