@@ -1,6 +1,7 @@
 :root {
   background-color: #1e1e2e; /* Catppuccin Mocha base */
   scroll-behavior: smooth;
+  scrollbar-width: thin;
   --main-font: calc(0.75rem + 0.25vw) "Fira Code", monospace;
   --nav-font: bold calc(0.75rem + 0.75vw) "Fira Code", monospace;
   --hero-title-font: bold calc(2rem + 2vw) "Fira Code", monospace;
@@ -463,6 +464,7 @@ footer {
   height: 95vh;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-width: thin;
   box-sizing: border-box;
   isolation: isolate;
   z-index: 1;
