@@ -114,6 +114,7 @@ const galleryData = {
 
 const modal = document.getElementById('artwork-modal');
 const closeButton = modal.querySelector('.close-button');
+const contentWrapper = document.getElementById('content-wrapper');
 
 function openModal(title, credit, flavour, content, image, processImages, processGalleryCaptions) {
   if (!content || !image) return;
@@ -168,12 +169,12 @@ function openModal(title, credit, flavour, content, image, processImages, proces
   }
   
   modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
+  contentWrapper.style.overflow = 'hidden';
 }
 
 function closeModal() {
   modal.classList.remove('active');
-  document.body.style.overflow = '';
+  contentWrapper.style.overflow = '';
 }
 
 function setupProcessGalleryImageClicks() {
@@ -272,33 +273,17 @@ document.querySelectorAll('#artwork-gallery .gallery-item').forEach(img => {
 
 document.addEventListener('DOMContentLoaded', () => {
   const nav = document.querySelector('nav');
-  const scrollThreshold = 100;
+  const scrollThreshold = 100.0;
   
   function updateNavBackground() {
-    if (window.scrollY > scrollThreshold) {
+    if (contentWrapper.scrollTop > scrollThreshold) {
       nav.classList.add('nav-scrolled');
     } else {
       nav.classList.remove('nav-scrolled');
     }
   }
   
-  window.addEventListener('scroll', updateNavBackground);
-  
-  const parallaxImage = document.querySelector('.parallax-image');
-  const parallaxFade = document.querySelector('.parallax-fade');
-  const speed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--parallax-speed').trim()) || 0.6;
-  
-  function updateParallax() {
-    const yOffset = window.pageYOffset;
-    const transformValue = `translateY(-${yOffset * speed}px)`;
-    
-    parallaxImage.style.transform = transformValue;
-    parallaxFade.style.transform = transformValue;
-  }
-  
-  window.addEventListener('scroll', updateParallax);
-  window.addEventListener('resize', updateParallax);
+  contentWrapper.addEventListener('scroll', updateNavBackground);
   
   updateNavBackground();
-  updateParallax();
 });
