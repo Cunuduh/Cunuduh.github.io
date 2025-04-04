@@ -146,13 +146,11 @@ function openModal(title, credit, flavour, content, image, processImages, proces
     const modalContent = modal.querySelector('.modal-content');
     if (aspectRatio > 1.5) {
       modalContent.style.gridTemplateAreas = `
-        "image"
-        "info"
-        "gallery"
+        "image image"
+        "info gallery"
       `;
-      modalContent.style.gridTemplateColumns = '1fr';
-      modalImage.style.gridColumn = '1';
-      modalImage.style.gridGap = '0';
+      modalContent.style.gridTemplateColumns = '1fr 1fr';
+      modalImage.style.gridColumn = '1 / 3';
     } else {
       modalContent.style.gridTemplateColumns = '';
       modalImage.style.gridColumn = '';
