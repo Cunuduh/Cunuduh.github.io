@@ -285,3 +285,28 @@ document.addEventListener('DOMContentLoaded', () => {
   
   updateNavBackground();
 });
+
+// Dropdown functionality for contact button
+const contactButton = document.getElementById('contact-button');
+const dropdownContainer = document.querySelector('.dropdown-container');
+
+// Smooth toggle animation for the dropdown
+contactButton.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  dropdownContainer.classList.toggle('dropdown-active');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!dropdownContainer.contains(e.target) && dropdownContainer.classList.contains('dropdown-active')) {
+    dropdownContainer.classList.remove('dropdown-active');
+  }
+});
+
+// Close dropdown when scrolling - use a small delay to ensure smooth animation
+contentWrapper.addEventListener('scroll', () => {
+  if (dropdownContainer.classList.contains('dropdown-active')) {
+    dropdownContainer.classList.remove('dropdown-active');
+  }
+});

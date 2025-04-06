@@ -39,6 +39,11 @@
 <nav>
   <div class="nav-container">
     <h2>glae</h2>
+    <ul>
+      <li><a href="#programs">projects</a></li>
+      <li><a href="#games">games</a></li>
+      <li><a href="#artwork-11">artwork</a></li>
+    </ul>
   </div>
 </nav>
 
@@ -54,9 +59,55 @@
         <h1>hi, i'm <span class="cool-gradient">glae</span></h1>
           <p>grade 11 student who loves art and code (and catppuccin!)</p>
         <div class="button-container">
-          <a class="button primary" href="#footer">contact me</a>
-          <a class="button" href="#games">godot projects</a>
-          <a class="button" href="#artwork-11">artwork</a>
+          <div class="dropdown-container">
+            <a class="button primary" id="contact-button">contact me</a>
+            <div class="dropdown-content" id="contact-dropdown">
+              <a href="mailto:glae.alejo@gmail.com">email me</a>
+              <a href="https://github.com/Cunuduh">github</a>
+              <a href="https://www.linkedin.com/in/glae-alejo-a76292354">linkedin</a>
+              <a href="https://www.instagram.com/cunuduh.invalid/">instagram</a>
+              <a href="https://cunuduh.itch.io/">itch.io</a>
+              <a href="https://x.com/cunuduh">x</a>
+            </div>
+          </div>
+          <a class="button" href="#programs">projects</a>
+        </div>
+      </div>
+    </div>
+    <h2 id="programs">projects i've worked on</h2>
+    <p>miscellaneous programs and projects that i've built to explore the field of programming (ai, vex robotics, other cool stuff).</p>
+    <p>click on the links to see the source code on github!</p>
+    <div id="programs-gallery" class="project-list">
+      <div class="project-item">
+        <h3>
+          <a href="https://github.com/Cunuduh/Cunuduh.github.io">this website</a>
+        </h3>
+        <div class="project-summary">
+          <p>my personal website built with html, css, and js, ft. catppuccin mocha</p>
+        </div>
+      </div>
+      <div class="project-item">
+        <h3>
+          <a href="https://github.com/Cunuduh/hurricane-robotics/tree/competition">hurricane robotics</a>
+        </h3>
+        <div class="project-summary">
+          <p>vex robotics codebase for team 296A, currently based on ez-template</p>
+        </div>
+      </div>
+      <div class="project-item">
+        <h3>
+          <a href="https://github.com/cunuduh/lyra">lyra</a>
+        </h3>
+        <div class="project-summary">
+          <p>open-source cli tool that converts audio files to .lrc (synchronized lyrics) format using the whisper model</p>
+        </div>
+      </div>
+      <div class="project-item">
+        <h3>
+          <a href="https://github.com/cunuduh/vex-path-planner">vex path planner</a>
+        </h3>
+        <div class="project-summary">
+          <p>path planning tool made in godot to speed up autonomous routine development for vex</p>
         </div>
       </div>
     </div>
@@ -79,23 +130,6 @@
       <div class="gallery-item">
         <img src="img/illegal_aliens.png" alt="Illegal Aliens logo" style="image-rendering: crisp-edges;" loading="lazy">
         <a class="button" href="https://cunuduh.itch.io/illegal-aliens-game">illegal aliens</a>
-      </div>
-    </div>
-    <h2 id="programs">programs i've made</h2>
-    <p>miscellaneous programs and projects that i've built to explore the field of programming (ai, robotics, other cool stuff).</p>
-    <p>click on the images to see the source code on github!</p>
-    <div id="programs-gallery" class="gallery">
-      <div class="gallery-item">
-        <img src="img/hurricane_robotics.png" alt="Hurricane Robotics" loading="lazy">
-        <a class="button" href="https://github.com/Cunuduh/hurricane-robotics/tree/competition">hurricane robotics</a>
-      </div>
-      <div class="gallery-item">
-        <img src="https://placehold.co/250" alt="Lyra" loading="lazy">
-        <a class="button" href="https://github.com/cunuduh/lyra">lyra</a>
-      </div>
-      <div class="gallery-item">
-        <img src="https://placehold.co/250" alt="VEX Path Planner" loading="lazy">
-        <a class="button" href="https://github.com/cunuduh/vex-path-planner">vex path planner</a>
       </div>
     </div>
     <h2 id="artwork-11">my artwork (grade 11 AVI3M0 fall 2024-2025)</h2>
