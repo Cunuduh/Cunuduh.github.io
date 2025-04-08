@@ -1,0 +1,40 @@
+.transition {
+  transition-property: opacity, transform;
+  transition-timing-function: ease;
+}
+
+.duration-200 {
+  transition-duration: 200ms;
+}
+
+.duration-300 {
+  transition-duration: 300ms;
+}
+
+.ease-in {
+  transition-timing-function: ease-in;
+}
+
+.ease-out {
+  transition-timing-function: ease-out;
+}
+
+.opacity-0 {
+  opacity: 0;
+}
+
+.opacity-100 {
+  opacity: 1;
+}
+
+.transform {
+  transform-origin: center;
+}
+
+.scale-95 {
+  transform: scale(0.95);
+}
+
+.scale-100 {
+  transform: scale(1);
+}

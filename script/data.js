@@ -1,4 +1,4 @@
-const galleryData = {
+window.galleryData = {
   artwork: [
     {
       title: "story quilt",
@@ -70,7 +70,7 @@ const galleryData = {
       credit: "<i>Untitled</i>, Glae Alejo (December 2024). Acrylic on clay, HLSS.",
       flavour: "a bowl... with balls!?",
       description: "This is a bowl I made during the clay unit in class. It was winter, so I wanted to create a bowl with an icy, blue theme. In the middle of the bowl, there are two balls stacked on top of each other. I was going to add a third and create an upside-down snowman (because I'm quirky like that), but my teacher told me it would collapse in the kiln. When painting the bowl, I kept in mind to shade areas that would usually be in shadow—the underside of the balls and the bottom of the bowl—and highlighting areas that would be in light—the rim of the bowl and the top of the ball, enhancing the contours of the scuplture. I applied this technique to the clay sound amplifier, the studio project after this warmup piece.",
-      image: "img/bowl.jpg",
+      image: "img/bowl.jpg"
     },
     {
       title: "sketchbook",
@@ -100,213 +100,14 @@ const galleryData = {
       credit: "<i>beabadoobee</i>, Glae Alejo (December 2024). Digital painting, Home.",
       flavour: "i'm a fan",
       description: `I painted beabadoobee because I love her music. I used a reference photo from her 2023 <i>This Is How Tomorrow Moves</i> album. My objective for this painting was to improve at my observation skills, specifically in capturing her facial proportions accurately. I also wanted to practice my digital painting technique, focusing on confidently placing brush strokes and colour accuracy. One thing I could improve on is the hair; there is little texture in the dark areas, so it blends into her clothing. I think it's the low quality of my reference photo which is to blame for this. Overall, I'm proud of the final result, especially her face, which I spent the most time on to capture her essence in its fullest.`,
-      image: "img/beabadoobee.jpg",
+      image: "img/beabadoobee.jpg"
     },
     {
       title: "final remarks",
       credit: "<i>Mount Pinatubo</i>, Glae Alejo (July 2024). Digital painting, Home.",
       flavour: "+ a digital painting of mount pinatubo",
       description: `The Museum Mutant painting stands out as my favorite project this year, marking a significant return to acrylic painting—my first serious engagement with the medium since Grade 8. The experience of channeling my emotions and experiences through various techniques like impasto and wet-in-wet brought me unexpected joy and artistic fulfillment. However, my journey through this year's projects wasn't without its challenges. The Triptych project initially presented the biggest hurdle, primarily due to creative blockage when faced with the theme "life as a teen." Breaking through this mental barrier required deep introspection, ultimately leading me to confront my most profound yet unspoken struggle—gender identity. Despite the sensitivity of this topic, especially in 2025, I chose to embrace it as my subject matter. Ironically, this same challenging project became the artwork I'm most proud of, representing more than just technical skill—it marks my first step toward authentic self-expression. The difficulty of creating a painting about gender dysphoria makes it all the more meaningful, serving as one of many small cracks in the metaphorical cell I've constructed around myself. Reflecting on the course structure, I particularly appreciated the collaborative elements in the Story Quilt project and the peer feedback component of the Triptych. I believe future grade 11 students would benefit from more opportunities for peer collaboration, perhaps through large-scale group projects like a shared canvas mural. My experience in this course has been overwhelmingly positive, validating my decision to enroll through MyBlueprint. As I conclude this Grade 11 portion of my portfolio, I look forward to what lies ahead. The best is yet to come! 👋`,
-      image: "img/mount_pinatubo.png",
+      image: "img/mount_pinatubo.png"
     }
-  ],
+  ]
 };
-
-const modal = document.getElementById('artwork-modal');
-const closeButton = modal.querySelector('.close-button');
-const contentWrapper = document.getElementById('content-wrapper');
-
-function openModal(title, credit, flavour, content, image, processImages, processGalleryCaptions) {
-  if (!content || !image) return;
-  const modalBody = modal.querySelector('.modal-body');
-  modalBody.querySelector('.modal-text').innerHTML = content;
-  const processGallery = modal.querySelector('.process-gallery');
-  processGallery.innerHTML = '';
-  if (processImages) {
-    processImages.forEach((image, index) => {
-      const img = document.createElement('img');
-      img.src = image;
-      img.alt = processGalleryCaptions?.[index] || `${title} process image`;
-      img.dataset.caption = processGalleryCaptions?.[index] || '';
-      img.loading = 'lazy';
-      processGallery.appendChild(img);
-    });
-  }
-  modal.querySelector('.modal-title').textContent = title;
-  modal.querySelector('.modal-credit').textContent = flavour;
-
-  const modalImage = modal.querySelector('.modal-image');
-  const modalImg = document.createElement('img');
-  modalImg.src = image;
-  modalImg.dataset.caption = credit;
-  modalImg.alt = title;
-  modalImg.loading = 'lazy';
-  modalImg.onload = () => {
-    const aspectRatio = modalImg.width / modalImg.height;
-    const modalContent = modal.querySelector('.modal-content');
-    if (aspectRatio > 1.5) {
-      modalContent.style.gridTemplateAreas = `
-        "image image"
-        "info gallery"
-      `;
-      modalContent.style.gridTemplateColumns = '1fr 1fr';
-      modalImage.style.gridColumn = '1 / 3';
-    } else {
-      modalContent.style.gridTemplateColumns = '';
-      modalImage.style.gridColumn = '';
-      modalContent.style.gridTemplateAreas = "";
-    }
-  };
-  modalImage.innerHTML = '';
-  modalImage.appendChild(modalImg);
-  setupProcessGalleryImageClicks();
-  if (credit) {
-    const figcaption = document.createElement('figcaption');
-    figcaption.innerHTML = credit;
-    modalImage.appendChild(figcaption);
-  }
-  
-  modal.classList.add('active');
-  contentWrapper.style.overflow = 'hidden';
-}
-
-function closeModal() {
-  modal.classList.remove('active');
-  contentWrapper.style.overflow = '';
-}
-
-function setupProcessGalleryImageClicks() {
-  const processImages = document.querySelectorAll('.process-gallery img');
-  const mainImage = document.querySelector('.modal-image img');
-  
-  mainImage.addEventListener('click', () => {
-    const expandedView = document.createElement('div');
-    expandedView.className = 'expanded-image';
-
-    const figure = document.createElement('figure');
-    
-    const expandedImg = document.createElement('img');
-    expandedImg.src = mainImage.src;
-    expandedImg.alt = mainImage.alt;
-
-    figure.appendChild(expandedImg);
-
-    if (mainImage.dataset.caption) {
-      const figcaption = document.createElement('figcaption');
-      figcaption.innerHTML = mainImage.dataset.caption;
-      figure.appendChild(figcaption);
-    }
-    expandedView.appendChild(figure);
-
-    document.body.appendChild(expandedView);
-
-    expandedView.addEventListener('click', () => {
-      expandedView.remove();
-    });
-  });
-
-  processImages.forEach(img => {
-    img.addEventListener('click', (e) => {
-      const expandedView = document.createElement('div');
-      expandedView.className = 'expanded-image';
-      
-      const figure = document.createElement('figure');
-      
-      const expandedImg = document.createElement('img');
-      expandedImg.src = e.target.src;
-      expandedImg.alt = e.target.alt;
-      
-      figure.appendChild(expandedImg);
-      
-      if (e.target.dataset.caption) {
-        const figcaption = document.createElement('figcaption');
-        figcaption.textContent = e.target.dataset.caption;
-        figure.appendChild(figcaption);
-      }
-      
-      expandedView.appendChild(figure);
-      document.body.appendChild(expandedView);
-      
-      expandedView.addEventListener('click', () => {
-        expandedView.remove();
-      });
-    });
-  });
-}
-
-closeButton.addEventListener('click', closeModal);
-
-modal.addEventListener('click', (e) => {
-  if (e.target === modal) closeModal();
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modal.classList.contains('active')) {
-    closeModal();
-  }
-});
-document.querySelectorAll('#artwork-gallery .gallery-item .button').forEach(button => {
-  button.addEventListener('click', (e) => {
-    e.preventDefault();
-  });
-});
-
-document.querySelectorAll('#artwork-gallery .gallery-item').forEach(img => {
-  img.addEventListener('click', (e) => {
-    const title = img.querySelector('.button').textContent;
-    const artworkData = galleryData.artwork.find(item => item.title.toLowerCase() === title.toLowerCase());
-    if (artworkData) {
-      openModal(
-        artworkData.title,
-        artworkData.credit,
-        artworkData.flavour,
-        artworkData.description,
-        artworkData.image,
-        artworkData.processGallery,
-        artworkData.processGalleryCaptions
-      );
-    }
-  });
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-  const nav = document.querySelector('nav');
-  const scrollThreshold = 100.0;
-  
-  function updateNavBackground() {
-    if (contentWrapper.scrollTop > scrollThreshold) {
-      nav.classList.add('nav-scrolled');
-    } else {
-      nav.classList.remove('nav-scrolled');
-    }
-  }
-  
-  contentWrapper.addEventListener('scroll', updateNavBackground);
-  
-  updateNavBackground();
-});
-
-// Dropdown functionality for contact button
-const contactButton = document.getElementById('contact-button');
-const dropdownContainer = document.querySelector('.dropdown-container');
-
-// Smooth toggle animation for the dropdown
-contactButton.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  dropdownContainer.classList.toggle('dropdown-active');
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-  if (!dropdownContainer.contains(e.target) && dropdownContainer.classList.contains('dropdown-active')) {
-    dropdownContainer.classList.remove('dropdown-active');
-  }
-});
-
-// Close dropdown when scrolling - use a small delay to ensure smooth animation
-contentWrapper.addEventListener('scroll', () => {
-  if (dropdownContainer.classList.contains('dropdown-active')) {
-    dropdownContainer.classList.remove('dropdown-active');
-  }
-});

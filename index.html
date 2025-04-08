@@ -4,39 +4,156 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width">
   <title>glae alejo portfolio</title>
-  <!-- fira code -->
   <link rel="preconnect" href="https://fonts.googleapis.com/">
   <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400&display=swap" rel="stylesheet">
-  <!-- inter font -->
-  <link rel="preconnect" href="https://rsms.me/">
-  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
   <link rel="stylesheet" href="style/index.css">
-  <script src="script/index.js" defer></script>
+  <link rel="stylesheet" href="style/alpine-transitions.css">
+  <script src="https://unpkg.com/alpinejs@3.14.8" defer></script>
+  <script src="script/data.js"></script>
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.store('modal', {
+        active: false,
+        currentArtwork: null
+      });
+    });
+  </script>
 </head>
 <body>
-<div id="artwork-modal" class="modal">
-  <button class="close-button">
+<div id="artwork-modal" 
+     class="modal"
+     x-data="{
+        expandedImage: null,
+        expandedCaption: null,
+        showExpandedView: false,
+        
+        showExpandedImage(img) {
+            this.expandedImage = img.src;
+            this.expandedCaption = img.dataset.caption || '';
+            this.showExpandedView = true;
+            document.body.style.overflow = 'hidden';
+        },
+        
+        closeExpandedView() {
+            this.showExpandedView = false;
+            setTimeout(() => {
+                document.body.style.overflow = '';
+            }, 300);
+        }
+     }"
+     x-show="$store.modal.active"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     @keydown.escape.window="$store.modal.active = false; document.getElementById('content-wrapper').style.overflow = ''">
+  <button class="close-button" @click="$store.modal.active = false; document.getElementById('content-wrapper').style.overflow = ''">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
       <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
     </svg>
   </button>
-  <div class="modal-content">
-    <div class="modal-info">
-      <h1 class="modal-title"></h1>
-      <h3 class="modal-credit"></h3>
-      <hr>
-      <div class="modal-body">
-        <h3>artist statement</h3>
-        <p class="modal-text"></p>
-      </div>
+  
+  <!-- Expanded Image View Modal -->
+  <div class="expanded-image-modal"
+       x-show="showExpandedView"
+       @click="closeExpandedView()"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0"
+       style="display: none;">
+    <div class="expanded-image-container"
+         x-show="showExpandedView"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform scale-95"
+         x-transition:enter-end="opacity-100 transform scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform scale-100"
+         x-transition:leave-end="opacity-0 transform scale-95"
+         @click.stop>
+      <figure>
+        <img :src="expandedImage" alt="Expanded view" @click.stop>
+        <figcaption x-show="expandedCaption" x-html="expandedCaption"></figcaption>
+      </figure>
     </div>
-    <figure class="modal-image"></figure>
-    <div class="process-gallery"></div>
+  </div>
+  
+  <div class="modal-content" 
+       id="modal-content"
+       x-show="$store.modal.active"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0 transform scale-95"
+       x-transition:enter-end="opacity-100 transform scale-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100 transform scale-100"
+       x-transition:leave-end="opacity-0 transform scale-95"
+       x-data="{
+         artwork: $store.modal.currentArtwork || null
+       }"
+       x-effect="artwork = $store.modal.currentArtwork">
+      <div class="modal-info">
+        <h1 class="modal-title" x-text="artwork?.title"></h1>
+        <h3 class="modal-credit" x-text="artwork?.flavour"></h3>
+        <hr>
+        <div class="modal-body">
+          <h3>artist statement</h3>
+          <p class="modal-text" x-html="artwork?.description"></p>
+        </div>
+      </div>
+
+      <figure class="modal-image" x-init="$nextTick(() => {
+          const img = $el.querySelector('img');
+          img.onload = () => {
+            const aspectRatio = img.naturalWidth / img.naturalHeight;
+            const modalContent = $el.closest('.modal-content');
+            if (aspectRatio > 1.5) {
+              modalContent.style.gridTemplateAreas = `
+                'image image'
+                'info gallery'
+              `;
+              modalContent.style.gridTemplateColumns = '1fr 1fr';
+              $el.style.gridColumn = '1 / 3';
+            } else {
+              modalContent.style.gridTemplateColumns = '';
+              $el.style.gridColumn = '';
+              modalContent.style.gridTemplateAreas = '';
+            }
+          }
+        })">
+        <img 
+          :src="artwork?.image" 
+          :alt="artwork?.title" 
+          :data-caption="artwork?.credit" 
+          loading="lazy"
+          @click="showExpandedImage($event.target)"
+          style="cursor: zoom-in;">
+        <figcaption x-html="artwork?.credit"></figcaption>
+      </figure>
+
+      <div class="process-gallery">
+        <template x-if="artwork?.processGallery && artwork?.processGallery.length > 0">
+          <template x-for="(image, index) in artwork.processGallery" :key="index">
+            <img 
+              :src="image" 
+              :alt="`${artwork.title} process image`" 
+              :data-caption="artwork?.processGalleryCaptions ? artwork?.processGalleryCaptions[index] : ''"
+              loading="lazy"
+              @click="showExpandedImage($event.target)"
+              style="cursor: zoom-in;">
+          </template>
+        </template>
+      </div>
   </div>
 </div>
 
-<nav>
+<nav x-data="{ scrolled: false }" 
+     :class="{ 'nav-scrolled': scrolled }"
+     @scroll-changed.window="scrolled = $event.detail.scrolled">
   <div class="nav-container">
     <h2>glae</h2>
     <ul>
@@ -47,7 +164,15 @@
   </div>
 </nav>
 
-<div id="content-wrapper">
+<div id="content-wrapper"
+     x-data
+     x-init="$el.addEventListener('scroll', () => {
+       if ($el.scrollTop > 100) {
+         window.dispatchEvent(new CustomEvent('scroll-changed', { detail: { scrolled: true }}));
+       } else {
+         window.dispatchEvent(new CustomEvent('scroll-changed', { detail: { scrolled: false }}));
+       }
+     })">
   <div class="parallax-background">
     <div class="parallax-image"></div>
     <div class="parallax-fade"></div>
@@ -57,11 +182,11 @@
     <div id="hero">
       <div class="hero-text">
         <h1>hi, i'm <span class="cool-gradient">glae</span></h1>
-          <p>grade 11 student who loves art and code (and catppuccin!)</p>
+        <p>grade 11 student who loves art and code (and catppuccin!)</p>
         <div class="button-container">
-          <div class="dropdown-container">
-            <a class="button primary" id="contact-button">contact me</a>
-            <div class="dropdown-content" id="contact-dropdown">
+          <div class="dropdown-container" x-data="{ open: false }" @click.outside="open = false" :class="open ? 'dropdown-active' : ''">
+            <a class="button primary" id="contact-button" @click.prevent="open = !open">contact me</a>
+            <div class="dropdown-content">
               <a href="mailto:glae.alejo@gmail.com">email me</a>
               <a href="https://github.com/Cunuduh">github</a>
               <a href="https://www.linkedin.com/in/glae-alejo-a76292354">linkedin</a>
@@ -135,43 +260,29 @@
     <h2 id="artwork-11">my artwork (grade 11 AVI3M0 fall 2024-2025)</h2>
     <p>here's my artwork from my grade 11 art class. this space was also my culminating project submission for the course. i love to experiment with different mediums and styles, and i hope you enjoy my work as much as i enjoyed creating it!</p>
     <p>click on the images to see more details about each piece!</p>
-    <div id="artwork-gallery" class="gallery">
-      <div class="gallery-item">
-        <img src="img/story_quilt.jpg" alt="Story Quilt" loading="lazy">
-        <a class="button">story quilt</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/hero_portrait.jpg" alt="Hero Portrait" loading="lazy">
-        <a class="button">hero portrait</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/triptych.jpg" alt="Triptych" loading="lazy">
-        <a class="button">triptych</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/bowl.jpg" alt="Bowl" loading="lazy">
-        <a class="button">bowl</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/sound_amplifier.jpg" alt="Sound Amplifier" loading="lazy">
-        <a class="button">sound amplifier</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/museum_mutant.jpg" alt="Museum Mutant" loading="lazy">
-        <a class="button">museum mutant</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/sketchbook.jpg" alt="Sketchbook" loading="lazy">
-        <a class="button">sketchbook</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/beabadoobee.jpg" alt="Painting of beabadoobee" loading="lazy">
-        <a class="button">painting of beabadoobee</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/mount_pinatubo.png" alt="Final Remarks" loading="lazy">
-        <a class="button">final remarks</a>
-      </div>
+    <div id="artwork-gallery" class="gallery" x-data="{ 
+      artworks: [],
+      init() {
+        if (window.galleryData) {
+          this.artworks = window.galleryData.artwork;
+        } else {
+          document.addEventListener('DOMContentLoaded', () => {
+            this.artworks = window.galleryData.artwork;
+          });
+        }
+      },
+      openModal(artwork) {
+        Alpine.store('modal').currentArtwork = artwork;
+        Alpine.store('modal').active = true;
+        document.getElementById('content-wrapper').style.overflow = 'hidden';
+      }
+    }">
+      <template x-for="(artwork, index) in artworks" :key="index">
+        <div class="gallery-item" @click="openModal(artwork)">
+          <img :src="artwork.image" :alt="artwork.title" loading="lazy">
+          <a class="button" x-text="artwork.title"></a>
+        </div>
+      </template>
     </div>
     <footer id="footer">
       <div class="footer-content">
