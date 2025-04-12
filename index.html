@@ -9,38 +9,47 @@
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style/index.css">
   <link rel="stylesheet" href="style/alpine-transitions.css">
-  <script src="https://unpkg.com/alpinejs@3.14.8" defer></script>
-  <script src="script/data.js"></script>
+  <script defer src="https://unpkg.com/alpinejs-masonry@latest/dist/masonry.min.js"></script>
+  <script defer src="https://unpkg.com/alpinejs@latest"></script>
   <script>
     document.addEventListener('alpine:init', () => {
       Alpine.store('modal', {
         active: false,
         currentArtwork: null
       });
+      
+      Alpine.data('galleryComponent', (items = []) => ({
+        items,
+        openModal(artwork) {
+          Alpine.store('modal').currentArtwork = artwork;
+          Alpine.store('modal').active = true;
+        }
+      }));
     });
   </script>
+  <script src="script/data.js"></script>
 </head>
 <body>
 <div id="artwork-modal" 
      class="modal"
      x-data="{
-        expandedImage: null,
-        expandedCaption: null,
-        showExpandedView: false,
-        
-        showExpandedImage(img) {
-            this.expandedImage = img.src;
-            this.expandedCaption = img.dataset.caption || '';
-            this.showExpandedView = true;
-            document.body.style.overflow = 'hidden';
-        },
-        
-        closeExpandedView() {
-            this.showExpandedView = false;
-            setTimeout(() => {
-                document.body.style.overflow = '';
-            }, 300);
-        }
+      expandedImage: null,
+      expandedCaption: null,
+      showExpandedView: false,
+      
+      showExpandedImage(img) {
+        this.expandedImage = img.src;
+        this.expandedCaption = img.dataset.caption || '';
+        this.showExpandedView = true;
+        document.body.style.overflow = 'hidden';
+      },
+      
+      closeExpandedView() {
+        this.showExpandedView = false;
+        setTimeout(() => {
+          document.body.style.overflow = '';
+        }, 300);
+      }
      }"
      x-show="$store.modal.active"
      x-transition:enter="transition ease-out duration-300"
@@ -49,7 +58,8 @@
      x-transition:leave="transition ease-in duration-200"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     @keydown.escape.window="$store.modal.active = false; document.getElementById('content-wrapper').style.overflow = ''">
+     @keydown.escape.window="$store.modal.active = false; document.getElementById('content-wrapper').style.overflow = ''"
+     style="display: none;">
   <button class="close-button" @click="$store.modal.active = false; document.getElementById('content-wrapper').style.overflow = ''">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
       <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -107,7 +117,7 @@
       </div>
 
       <figure class="modal-image" x-init="$nextTick(() => {
-          const img = $el.querySelector('img');
+          const img = $refs.img;
           img.onload = () => {
             const aspectRatio = img.naturalWidth / img.naturalHeight;
             const modalContent = $el.closest('.modal-content');
@@ -123,7 +133,7 @@
               $el.style.gridColumn = '';
               modalContent.style.gridTemplateAreas = '';
             }
-          }
+          };
         })">
         <img 
           :src="artwork?.image" 
@@ -131,21 +141,26 @@
           :data-caption="artwork?.credit" 
           loading="lazy"
           @click="showExpandedImage($event.target)"
+          x-ref="img"
           style="cursor: zoom-in;">
         <figcaption x-html="artwork?.credit"></figcaption>
       </figure>
-
       <div class="process-gallery">
         <template x-if="artwork?.processGallery && artwork?.processGallery.length > 0">
-          <template x-for="(image, index) in artwork.processGallery" :key="index">
-            <img 
-              :src="image" 
-              :alt="`${artwork.title} process image`" 
-              :data-caption="artwork?.processGalleryCaptions ? artwork?.processGalleryCaptions[index] : ''"
-              loading="lazy"
-              @click="showExpandedImage($event.target)"
-              style="cursor: zoom-in;">
-          </template>
+          <ul class="gallery process" x-masonry>
+            <template x-for="(image, index) in artwork.processGallery" :key="index">
+              <li>
+                <img 
+                  :src="image" 
+                  :alt="`${artwork.title} process image`" 
+                  :data-caption="artwork?.processGalleryCaptions ? artwork?.processGalleryCaptions[index] : ''"
+                  loading="lazy"
+                  @click="showExpandedImage($event.target)"
+                  @load="$dispatch('reload:masonry')"
+                  style="cursor: zoom-in;">
+              </li>
+            </template>
+          </ul>
         </template>
       </div>
   </div>
@@ -239,51 +254,50 @@
     <h2 id="games">my godot games</h2>
     <p>here are my godot projects! most of these were actually made for school, hence the simple 1-bit pixel art style and relatively simple game mechanics. try them out!</p>
     <p>click on the images to play the games on itch.io!</p>
-    <div id="games-gallery" class="gallery">
-      <div class="gallery-item">
-        <img src="img/was-it-worth-it.png" alt="Was it Worth It logo" style="image-rendering: crisp-edges;" loading="lazy">
-        <a class="button" href="https://cunuduh.itch.io/was-it-worth-it">was it worth it?</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/speakeasy_simulator.png" alt="Speakeasy Simulator logo" style="image-rendering: crisp-edges;" loading="lazy">
-        <a class="button" href="https://cunuduh.itch.io/speakeasy-simulator">speakeasy simulator</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/stay_safe_in_science.png" alt="Stay Safe in Science logo" style="image-rendering: crisp-edges;" loading="lazy">
-        <a class="button" href="https://cunuduh.itch.io/stay-safe-in-science">stay safe in science</a>
-      </div>
-      <div class="gallery-item">
-        <img src="img/illegal_aliens.png" alt="Illegal Aliens logo" style="image-rendering: crisp-edges;" loading="lazy">
-        <a class="button" href="https://cunuduh.itch.io/illegal-aliens-game">illegal aliens</a>
-      </div>
-    </div>
+    <ul id="games-gallery" class="gallery" x-data="galleryComponent([
+      {
+        image: 'img/was-it-worth-it.png',
+        title: 'was it worth it?',
+        link: 'https://cunuduh.itch.io/was-it-worth-it'
+      },
+      {
+        image: 'img/speakeasy_simulator.png',
+        title: 'speakeasy simulator',
+        link: 'https://cunuduh.itch.io/speakeasy-simulator'
+      },
+      {
+        image: 'img/stay_safe_in_science.png',
+        title: 'stay safe in science',
+        link: 'https://cunuduh.itch.io/stay-safe-in-science'
+      },
+      {
+        image: 'img/illegal_aliens.png',
+        title: 'illegal aliens',
+        link: 'https://cunuduh.itch.io/illegal-aliens-game'
+      }
+    ])"
+      x-masonry>
+      <template x-for="(game, index) in items" :key="index">
+        <li class="gallery-item">
+          <img :src="game.image" :alt="game.title + ' logo'" style="image-rendering: crisp-edges;" loading="lazy" @load="$dispatch('reload:masonry')">
+          <a class="button" :href="game.link" x-text="game.title"></a>
+        </li>
+      </template>
+    </ul>
     <h2 id="artwork-11">my artwork (grade 11 AVI3M0 fall 2024-2025)</h2>
     <p>here's my artwork from my grade 11 art class. this space was also my culminating project submission for the course. i love to experiment with different mediums and styles, and i hope you enjoy my work as much as i enjoyed creating it!</p>
     <p>click on the images to see more details about each piece!</p>
-    <div id="artwork-gallery" class="gallery" x-data="{ 
-      artworks: [],
-      init() {
-        if (window.galleryData) {
-          this.artworks = window.galleryData.artwork;
-        } else {
-          document.addEventListener('DOMContentLoaded', () => {
-            this.artworks = window.galleryData.artwork;
-          });
-        }
-      },
-      openModal(artwork) {
-        Alpine.store('modal').currentArtwork = artwork;
-        Alpine.store('modal').active = true;
-        document.getElementById('content-wrapper').style.overflow = 'hidden';
-      }
-    }">
-      <template x-for="(artwork, index) in artworks" :key="index">
-        <div class="gallery-item" @click="openModal(artwork)">
-          <img :src="artwork.image" :alt="artwork.title" loading="lazy">
+    <ul id="artwork-gallery" class="gallery" x-data="galleryComponent(window.galleryData.artwork)"
+      x-masonry>
+      <template x-for="(artwork, index) in items" :key="index">
+        <li class="gallery-item" @click="openModal(artwork); $nextTick(() => {
+          $dispatch('reload:masonry');
+        })">
+          <img :src="artwork.image" :alt="artwork.title" loading="lazy" @load="$dispatch('reload:masonry')">
           <a class="button" x-text="artwork.title"></a>
-        </div>
+        </li>
       </template>
-    </div>
+    </ul>
     <footer id="footer">
       <div class="footer-content">
         <div class="footer-section">
