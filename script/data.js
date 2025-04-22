@@ -1,3 +1,18 @@
+document.addEventListener('alpine:init', () => {
+  Alpine.store('modal', {
+    active: false,
+    currentArtwork: null
+  });
+  
+  Alpine.data('galleryComponent', (items = []) => ({
+    items,
+    openModal(artwork) {
+      Alpine.store('modal').currentArtwork = artwork;
+      Alpine.store('modal').active = true;
+    }
+  }));
+});
+
 window.galleryData = {
   artwork: [
     {

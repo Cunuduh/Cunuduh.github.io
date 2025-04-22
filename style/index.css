@@ -723,14 +723,27 @@ footer {
 }
 
 .modal-body {
-  display: contents;
+  display: block;
   
   & p {
     grid-column: 1;
   }
-  
-  @media only screen and (width < 768px) {
-    display: block;
+}
+
+.modal-content.no-process-gallery .modal-info > h1,
+.modal-content.no-process-gallery .modal-info > h3.modal-credit {
+  text-align: center;
+}
+.modal-content.no-process-gallery .modal-info > hr {
+  display: none;
+}
+
+.modal-content.no-process-gallery .modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  & h3 {
+    display: none;
   }
 }
 
