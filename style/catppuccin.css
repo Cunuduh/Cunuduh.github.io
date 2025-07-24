@@ -1,0 +1,31 @@
+:root {
+  color-scheme: dark;
+  background-color: #1e1e2e; /* Catppuccin Mocha base */
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  --main-font: calc(0.75rem + 0.25dvw) "Fira Code", monospace;
+  --nav-font: bold calc(0.75rem + 0.5dvw) "Fira Code", monospace;
+  --hero-title-font: bold calc(2rem + 2dvw) "Fira Code", monospace;
+  --txt-clr: #cdd6f4; /* Catppuccin Mocha text */
+  --sec-txt-clr: #a6adc8; /* Catppuccin Mocha subtext0 */
+  --red: #f38ba8; /* Catppuccin Mocha red */
+  --pink: #f5c2e7; /* Catppuccin Mocha pink */
+  --mauve: #cba6f7; /* Catppuccin Mocha mauve */
+  --lavender: #b4befe; /* Catppuccin Mocha lavender */
+  --blue: #89b4fa; /* Catppuccin Mocha blue */
+  --sapphire: #74c7ec; /* Catppuccin Mocha sapphire */
+  --sky: #89dceb; /* Catppuccin Mocha sky */
+  --teal: #94e2d5; /* Catppuccin Mocha teal */
+  --green: #a6e3a1; /* Catppuccin Mocha green */
+  --yellow: #f9e2af; /* Catppuccin Mocha yellow */
+  --peach: #fab387; /* Catppuccin Mocha peach */
+  --maroon: #eba0ac; /* Catppuccin Mocha maroon */
+  --base: #1e1e2e; /* Catppuccin Mocha base */
+  --surface0: #313244; /* Catppuccin Mocha surface0 */
+  --surface1: #45475a; /* Catppuccin Mocha surface1 */
+  --surface2: #585b70; /* Catppuccin Mocha surface2 */
+  --base-rgb: 30, 30, 46;
+  @media only screen and (width < 768px) {
+    --hero-title-font: bold calc(1.75rem + 1.25dvw) "Fira Code", monospace;
+  }
+}

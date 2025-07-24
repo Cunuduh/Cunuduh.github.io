@@ -1,0 +1,49 @@
+:root {
+  color-scheme: dark;
+  background-color: #000000; /* Pure black base */
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  --main-font: calc(0.75rem + 0.25dvw) "Fira Code", monospace;
+  --nav-font: bold calc(0.75rem + 0.5dvw) "Fira Code", monospace;
+  --hero-title-font: bold calc(2rem + 2dvw) "Fira Code", monospace;
+  --txt-clr: #00FFFF; /* Neon cyan text */
+  --sec-txt-clr: #FF69B4; /* Neon pink secondary text */
+  --red: #FF007F; /* Neon magenta */
+  --pink: #FF1493; /* Neon pink */
+  --mauve: #BA55D3; /* Neon purple */
+  --lavender: #E6E6FA; /* Bright lavender */
+  --blue: #00BFFF; /* Neon blue */
+  --sapphire: #0099CC; /* Electric blue */
+  --sky: #87CEEB; /* Sky blue */
+  --teal: #00FFFF; /* Neon teal */
+  --green: #39FF14; /* Neon green */
+  --yellow: #FFFF00; /* Neon yellow */
+  --peach: #FFD700; /* Gold */
+  --maroon: #FF0000; /* Neon red */
+  --base: #000000; /* Pure black base */
+  --surface0: #000000; /* Also black */
+  --surface1: #141426; /* Slightly lighter black */
+  --surface2: #122630; /* Medium black */
+  --base-rgb: 0, 0, 0;
+  @media only screen and (width < 768px) {
+    --hero-title-font: bold calc(1.75rem + 1.25dvw) "Fira Code", monospace;
+  }
+}
+#hero {
+  margin-bottom: 56rem;
+}
+.parallax-background {
+  height: 125dvh;
+}
+.parallax-image {
+  filter: brightness(0.5);
+  object-position: bottom center;
+}
+.parallax-fade {
+  background: linear-gradient(to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 100%);
+}
+nav::after {
+  background: rgba(0, 0, 0, 0.5);
+}
