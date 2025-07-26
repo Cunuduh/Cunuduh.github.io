@@ -29,3 +29,7 @@
     --hero-title-font: bold calc(1.75rem + 1.25dvw) "Fira Code", monospace;
   }
 }
+.parallax-image {
+  filter: brightness(0.75);
+  object-position: bottom center;
+}
