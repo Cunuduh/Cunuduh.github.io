@@ -176,9 +176,9 @@
   <div class="nav-container">
     <h2>glae</h2>
     <ul>
-      <li><a href="#programs">projects</a></li>
-      <li><a href="#games">games</a></li>
-      <li><a href="#artwork-11">artwork</a></li>
+      <li><a href="#documents">Docs</a></li>
+      <li><a href="#celp">CELP</a></li>
+      <li><a href="#certs">Certs</a></li>
     </ul>
   </div>
 </nav>
@@ -200,41 +200,157 @@
   <main>
     <div id="hero">
       <div class="hero-text">
-        <h1>hi, i'm <span class="cool-gradient">glae</span></h1>
-        <p>grade 11 student who loves art and code (and catppuccin!)</p>
+        <h1>Hi, i'm <span class="cool-gradient">Glae</span></h1>
+        <p>Grade 11 co-op student who loves art and code!</p>
         <div class="button-container">
           <div class="dropdown-container" x-data="{ open: false }" @click.outside="open = false" :class="open ? 'dropdown-active' : ''">
-            <a class="button primary" id="contact-button" @click.prevent="open = !open">contact me</a>
+            <a class="button primary" id="contact-button" @click.prevent="open = !open">Table of Contents</a>
             <div class="dropdown-content">
-              <a href="mailto:glae.alejo@gmail.com">email me</a>
-              <a href="https://github.com/Cunuduh">github</a>
-              <a href="https://www.linkedin.com/in/glae-alejo-a76292354">linkedin</a>
-              <a href="https://www.instagram.com/cunuduh.invalid/">instagram</a>
-              <a href="https://cunuduh.itch.io/">itch.io</a>
-              <a href="https://x.com/cunuduh">x</a>
+              <a href="#intro">Introduction</a>
+              <a href="#documents">Documents</a>
+              <a href="#celp">CELP</a>
+              <a href="#certs">Certifications</a>
             </div>
           </div>
-          <a class="button" href="#programs">projects</a>
         </div>
       </div>
     </div>
     
-    <div class="placeholder-section">
-      <h2>co-op portfolio coming soon</h2>
-      <p>this page is under construction!!!</p>
+    <div class="intro">
+      <div class="intro-text">
+        <h2 id="intro">Introduction</h2>
+        <p>Hello and welcome to my portfolio! My name is Glae Alejo (they/them), and I am a Grade 11 co-op student with a passion for art and code. My hobbies include gamedev, front-end development, digital art and graphic design.</p>
+        <p>My main goal after high school is to get into a university program for Computer Science or Software Engineering, preferably one with co-op opportunities for smooth transition into the workforce.</p>
+        <p>And after that, I hope to work in the tech industry, building expressive systems that sharpen thought and deepen connection to the imagination.</p>
+      </div>
+      <div class="intro-image">
+        <img src="img/background-alt.png" alt="Introduction Image">
+      </div>
     </div>
-    
+    <h2 id="documents">Documents for Job Applications</h2>
+    <p>Resume, Cover Letter and Reference Sheet documents. To view them, you must sign in with a PDSB account.</p>
+    <div id="programs-gallery" class="project-list">
+      <div class="project-item">
+        <h3>
+          <a href="https://docs.google.com/document/d/1Uibp6J_RLGVSZiVgqqoX5OnC76pJftUm9AkNDIsiz1g/edit?usp=sharing">Resume</a>
+        </h3>
+        <div class="project-summary">
+          <p>My resume, recently updated for job posting of Website Developer (Contract) @ ISPS-Canada</p>
+        </div>
+      </div>
+      <div class="project-item">
+        <h3>
+          <a href="https://docs.google.com/document/d/18vRYQGMkKexwMOX9tX8M2Ol0C33WwhW_FVYsJqbx1Qk/edit?usp=sharing">Cover Letter</a>
+        </h3>
+        <div class="project-summary">
+          <p>Here is my letter to Website Developer (Contract) @ ISPS-Canada</p>
+        </div>
+      </div>
+      <div class="project-item">
+        <h3>
+          <a href="https://docs.google.com/document/d/1rfdzsGMy91iKK_qO82Biy1CXlYn551qh57sjRyIfNkg/edit?usp=sharing">Reference Sheet</a>
+        </h3>
+        <div class="project-summary">
+          <p>My reference sheet for job applications</p>
+        </div>
+      </div>
+    </div>
+    <div class="celp-section">
+      <div class="celp-intro">
+        <h2 id="celp">CELP (Co-operative Education Learning Plan)</h2>
+        <p>The CELP outlines the goals and curriculum expectations for my placement. It serves as a roadmap, a "living document" for my learning and development throughout the month.</p>
+        <p>Along with the CELP, there is also an Evidence Log document I have attached to demonstrate my progress on developing workplace skills during the placement.</p>
+        <p>Here are some course expectations (both tieback course ICS3U and Co-op course) that I feel I have demonstrated at my placement:</p>
+      </div>
+      <div id="celp-documents" class="project-list">
+        <div class="project-item">
+          <h3>
+            <a
+              href="https://docs.google.com/document/d/1WQLzUAxYyi8XBRWEHTlDTycjmZHpSFWQjBA8sYC8WZ4/edit?usp=sharing">CELP</a>
+          </h3>
+          <div class="project-summary">
+            <p>My CELP document outlining the goals and expectations for my co-op placement</p>
+          </div>
+        </div>
+        <div class="project-item">
+          <h3>
+            <a href="https://docs.google.com/document/d/1-vBh4pJ7ieafDOTpDwVkQL1xXh3DQ9HHlg5lu8XiEW8/edit?usp=sharing">Evidence
+              Log</a>
+          </h3>
+          <div class="project-summary">
+            <p>My Evidence Log document showing my progress on developing workplace skills</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="expectation">
+      <div class="expectation-text">
+        <h2>Co-op Course Expectation 1:</h2>
+        <p>A1. Health, Safety and Well Being: demonstrate an understanding of legislation, practices, and behaviours related to Health and Safety and well-being in connection with the Co-operative Education experience</p>
+        <p>I have demonstrated this by completing online modules for WHMIS and Worker Health and Safety Awareness in 4 Steps. The essential skills required to complete these modules and apply the knowledge gained in a practical setting include digital skills, reading text and thinking. The work habits developed include working independently and working safely.</p>
+        <p>During my co-op placement, even while working from home, I applied safe work habits by maintaining an organized workspace, taking regular screen breaks and standing up to prevent strain in the eyes and lower body. These actions ensured my well-being and demonstrated my commitment to health and safety in a remote environment.</p>
+      </div>
+      <div class="expectation-image">
+        <img src="img/celp/whmis.png" alt="WHMIS Module Completion">
+        <img src="img/celp/worker-safety.png" alt="Worker Safety Module Completion">
+      </div>
+    </div>
+    <div class="expectation">
+      <div class="expectation-text">
+        <h2>Tieback Course Expectation 2:</h2>
+        <p>A4.2 use workplace and professional conventions (e.g., naming, indenting, commenting) correctly to write programs and internal documentation</p>
+        <p>I have demonstrated this course expectation by following the writing and formatting standards of the workplace throughout my co-op placement for QA tasks. The essential skills required to meet this course expectation include reading and writing text, as well as digital skills, because the tools we use to document bugs and feature tasks are entirely online and require proficiency in using them effectively.</p>
+        <p>Throughout my placement, I focused on QA tasks using Azure DevOps and the board to track bugs and feature requests. I made sure to use clear and consistent formatting for every task, including a description, steps to reproduce (if applicable), expected and actual behaviour, and screenshots. By following the documentation standards set for QA, I improved communication and collaboration within our remote team, ensuring that all information was organized and accessible. The first image shows my bug report writing, while the second is an exemplar by the Co-op team lead Gino Abrogena.</p>
+      </div>
+      <div class="expectation-image">
+        <img src="img/celp/bug-task.png" alt="Bug Report">
+        <img src="img/celp/bug-task-exemplar.png" alt="Bug Report Exemplar">
+      </div>
+    </div>
+    <div class="expectation">
+      <div class="expectation-text">
+        <h2>Tieback Course Expectation 3:</h2>
+        <p>B4.3 use project management tools (e.g., Gantt chart, critical path diagram, PERT chart) to show tasks and milestones in a teacher-led project</p>
+        <p>I have demonstrated this course expectation by using Azure DevOps, the main project management tool we used at Hippos, to manage my tasks and milestones throughout my co-op placement. The essential skills required to meet this course expectation include digital skills, as well as the ability to read and interpret project management tools effectively.</p>
+        <p>For example, I regularly updated my assigned tasks on the Azure DevOps board, tracked progress using status columns and properly assigned tasks back to developers. The QA flowchart helped me visualize the steps for reporting and resolving bugs, ensuring that each task moved efficiently from identification to completion. By collaborating with my team and following the project workflow, I contributed to meeting project goals and learned how structured project management improves productivity and accountability.</p>
+      </div>
+      <div class="expectation-image">
+        <img src="img/celp/azure-devops.png" alt="Azure DevOps">
+        <img src="img/celp/qa-flowchart.png" alt="QA Flowchart">
+      </div>
+    </div>
+    <h2 id="certs">Certifications</h2>
+    <ul class="gallery" x-masonry>
+      <li>
+        <img src="img/celp/whmis.png" alt="WHMIS Certification">
+      </li>
+      <li>
+        <img src="img/celp/worker-safety.png" alt="Worker Safety Certification">
+      </li>
+      <li>
+        <img src="img/celp/ohrc.png" alt="OHRC Certification">
+      </li>
+    </ul>
+    <div class="expectation">
+      <div class="expectation-text">
+        <h2 id="skills">Skills</h2>
+        <p>You can view more of my skills on my public portfolio website at <a href="https://glae.me">https://glae.me</a>, including personal passion projects and artwork!</p>
+      </div>
+      <div class="expectation-image">
+        <img src="img/celp/website.png" alt="Skills">
+      </div>
+    </div>
     <footer id="footer">
       <div class="footer-content">
         <div class="footer-section">
           <h3>connect</h3>
           <ul class="footer-links">
-            <li><a href="mailto:glae.alejo@gmail.com">email me</a></li>
-            <li><a href="https://github.com/Cunuduh">github</a></li>
-            <li><a href="https://www.linkedin.com/in/glae-alejo-a76292354">linkedin</a></li>
-            <li><a href="https://www.instagram.com/cunuduh.invalid/">instagram</a></li>
+            <li><a href="mailto:glae.alejo@gmail.com">Email me</a></li>
+            <li><a href="https://github.com/Cunuduh">GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/glae-alejo-a76292354">LinkedIn</a></li>
+            <li><a href="https://www.instagram.com/cunuduh.invalid/">Instagram</a></li>
             <li><a href="https://cunuduh.itch.io/">itch.io</a></li>
-            <li><a href="https://x.com/cunuduh">x (formerly twitter)</a></li>
+            <li><a href="https://x.com/glaeal">X (formerly Twitter)</a></li>
           </ul>
         </div>
       </div>

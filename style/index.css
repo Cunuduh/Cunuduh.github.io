@@ -334,10 +334,53 @@ nav {
     justify-content: center;
   }
 }
+.intro, .expectation {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  margin-bottom: 4rem;
+  column-gap: 2rem;
+  
+  & .expectation-text, .intro-text {
+    & h2 {
+      margin: 0 0 1rem 0;
+    }
+    
+    & p {
+      margin: 0.5rem 0;
+    }
+  }
+  
+  & .expectation-image, .intro-image {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    & img {
+      margin: 0;
+      max-width: 80%;
+      height: auto;
+      border-radius: 12px;
+    }
+  }
+}
+
+.celp-section {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 2rem;
+  margin-bottom: 4rem;
+  & .project-list {
+    justify-content: center;
+    margin: 0;
+  }
+}
 
 .project-list {
   width: 100%;
-  margin-bottom: 16rem;
+  margin-bottom: 8rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -455,7 +498,7 @@ nav {
 .gallery {
   width: 100%;
   margin: 0;
-  margin-bottom: 16rem;
+  margin-bottom: 8rem;
   display: grid;
   gap: 1.5rem;
   position: relative;
