@@ -3,329 +3,128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width">
-  <title>glae alejo portfolio</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com/">
-  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+  <title>Glae Alejo Portfolio</title>
+  <link rel="preconnect" href="https://rsms.me/">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
   <link rel="stylesheet" href="style/index.css">
-  <link rel="stylesheet" href="style/catppuccin.css">
-  <link rel="stylesheet" href="style/alpine-transitions.css">
-  <script defer src="https://unpkg.com/alpinejs-masonry@latest/dist/masonry.min.js"></script>
-  <script defer src="https://unpkg.com/alpinejs@latest"></script>
-  <script src="script/data.js"></script>
 </head>
 <body>
-<div id="artwork-modal" 
-     class="modal"
-     x-data="{
-      expandedImage: null,
-      expandedCaption: null,
-      showExpandedView: false,
-      
-      showExpandedImage(img) {
-        this.expandedImage = img.src;
-        this.expandedCaption = img.dataset.caption || '';
-        this.showExpandedView = true;
-        document.body.style.overflow = 'hidden';
-      },
-      
-      closeExpandedView() {
-        this.showExpandedView = false;
-        setTimeout(() => {
-          document.body.style.overflow = '';
-        }, 300);
-      }
-     }"
-     x-show="$store.modal.active"
-     x-transition:enter="transition ease-out duration-300"
-     x-transition:enter-start="opacity-0"
-     x-transition:enter-end="opacity-100"
-     x-transition:leave="transition ease-in duration-200"
-     x-transition:leave-start="opacity-100"
-     x-transition:leave-end="opacity-0"
-     @keydown.escape.window="$store.modal.active = false; document.getElementById('content-wrapper').style.overflow = ''"
-     style="display: none;">
-  <button class="close-button" @click="$store.modal.active = false; document.getElementById('content-wrapper').style.overflow = ''">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-      <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-    </svg>
-  </button>
-  
-  <div class="expanded-image-modal"
-       x-show="showExpandedView"
-       @click="closeExpandedView()"
-       x-transition:enter="transition ease-out duration-300"
-       x-transition:enter-start="opacity-0"
-       x-transition:enter-end="opacity-100"
-       x-transition:leave="transition ease-in duration-200"
-       x-transition:leave-start="opacity-100"
-       x-transition:leave-end="opacity-0"
-       style="display: none;">
-    <div class="expanded-image-container"
-         x-show="showExpandedView"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 transform scale-95"
-         x-transition:enter-end="opacity-100 transform scale-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 transform scale-100"
-         x-transition:leave-end="opacity-0 transform scale-95"
-         @click.stop>
-      <figure>
-        <img :src="expandedImage" alt="Expanded view" @click.stop>
-        <figcaption x-show="expandedCaption" x-html="expandedCaption"></figcaption>
-      </figure>
-    </div>
-  </div>
-  
-  <div class="modal-content" 
-       id="modal-content"
-       x-show="$store.modal.active"
-       x-transition:enter="transition ease-out duration-300"
-       x-transition:enter-start="opacity-0 transform scale-95"
-       x-transition:enter-end="opacity-100 transform scale-100"
-       x-transition:leave="transition ease-in duration-200"
-       x-transition:leave-start="opacity-100 transform scale-100"
-       x-transition:leave-end="opacity-0 transform scale-95"
-       x-data="{
-         artwork: $store.modal.currentArtwork || null
-       }"
-       x-effect="
-         artwork = $store.modal.currentArtwork;
-         // reset styles immediately when artwork changes
-         $el.style.gridTemplateColumns = '';
-         $el.style.gridColumn = ''; // this might not be needed on modal-content itself
-         $el.style.gridTemplateAreas = '';
-         $el.classList.remove('no-process-gallery');
-       ">
-      <div class="modal-info">
-        <h1 class="modal-title" x-text="artwork?.title"></h1>
-        <h3 class="modal-credit" x-text="artwork?.flavour"></h3>
-        <hr>
-        <div class="modal-body">
-          <h3>artist statement</h3>
-          <p class="modal-text" x-html="artwork?.description"></p>
-        </div>
-      </div>
-
-      <figure class="modal-image" x-init="$nextTick(() => {
-          const img = $refs.img;
-          img.onload = () => {
-            const aspectRatio = img.naturalWidth / img.naturalHeight;
-            const modalContent = $el.closest('.modal-content');
-            const artwork = Alpine.$data(modalContent).artwork;
-            const hasProcessGallery = artwork?.processGallery && artwork.processGallery.length > 0;
-
-            // only apply styles if needed, reset is handled by x-effect
-            if (aspectRatio > 1.5) {
-              modalContent.style.gridTemplateAreas = hasProcessGallery
-                ? `
-                'image image'
-                'info gallery'
-              `
-                : `
-                'image image'
-                'info info' 
-              `;
-              modalContent.style.gridTemplateColumns = '1fr 1fr';
-              // apply gridcolumn style to the figure itself, not modalcontent
-              $el.style.gridColumn = '1 / 3'; 
-              
-              if (!hasProcessGallery) {
-                modalContent.classList.add('no-process-gallery');
-              }
-            } else {
-              // ensure gridcolumn on figure is reset if not wide
-              $el.style.gridColumn = ''; 
-            }
-          };
-        })">
-        <img 
-          :src="artwork?.image" 
-          :alt="artwork?.title" 
-          :data-caption="artwork?.credit" 
-          loading="lazy"
-          @click="showExpandedImage($event.target)"
-          x-ref="img"
-          style="cursor: zoom-in;">
-        <figcaption x-html="artwork?.credit"></figcaption>
-      </figure>
-      <div class="process-gallery" x-show="artwork?.processGallery && artwork?.processGallery.length > 0">
-        <template x-if="artwork?.processGallery && artwork?.processGallery.length > 0">
-          <ul class="gallery process" x-masonry>
-            <template x-for="(image, index) in artwork.processGallery" :key="index">
-              <li>
-                <img 
-                  :src="image" 
-                  :alt="`${artwork.title} process image`" 
-                  :data-caption="artwork?.processGalleryCaptions ? artwork?.processGalleryCaptions[index] : ''"
-                  loading="lazy"
-                  @click="showExpandedImage($event.target)"
-                  @load="$dispatch('reload:masonry')"
-                  style="cursor: zoom-in;">
-              </li>
-            </template>
-          </ul>
-        </template>
-      </div>
-  </div>
-</div>
-
-<nav x-data="{ scrolled: false }" 
-     :class="{ 'nav-scrolled': scrolled }"
-     @scroll-changed.window="scrolled = $event.detail.scrolled">
-  <div class="nav-container">
-    <h2>glae</h2>
-    <ul>
-      <li><a href="#programs">projects</a></li>
-      <li><a href="#games">games</a></li>
-      <li><a href="#artwork-11">artwork</a></li>
-    </ul>
-  </div>
-</nav>
-
-<div id="content-wrapper"
-     x-data
-     x-init="$el.addEventListener('scroll', () => {
-       if ($el.scrollTop > 100) {
-         window.dispatchEvent(new CustomEvent('scroll-changed', { detail: { scrolled: true }}));
-       } else {
-         window.dispatchEvent(new CustomEvent('scroll-changed', { detail: { scrolled: false }}));
-       }
-     })">
-  <div class="parallax-background">
-      <img class="parallax-image" src="img/background-catppuccin.png" alt="Background">
-      <div class="parallax-fade"></div>
-  </div>
-  
-  <main>
+<canvas id="watercolor-background" aria-hidden="true"></canvas>
+<div class="receipt-shell">
+<main>
     <div id="hero">
       <div class="hero-text">
-        <h1>hi, i'm <span class="cool-gradient">glae</span></h1>
-        <p>grade 11 student who loves art and code (and catppuccin!)</p>
+        <div class="receipt-meta" aria-hidden="true">
+          <span>WEB / 001</span>
+          <span>AUTHENTIC</span>
+        </div>
+        <h1>Hi, I'm Glae</h1>
+        <p>First-year U of T Mathematical &amp; Physical Sciences student interested in computational cognitive science and computer science.</p>
         <div class="button-container">
-          <div class="dropdown-container" x-data="{ open: false }" @click.outside="open = false" :class="open ? 'dropdown-active' : ''">
-            <a class="button primary" id="contact-button" @click.prevent="open = !open">contact me</a>
+          <details class="dropdown-container">
+            <summary class="button">Contact Me</summary>
             <div class="dropdown-content">
-              <a href="mailto:glae.alejo@gmail.com">email me</a>
-              <a href="https://github.com/Cunuduh">github</a>
-              <a href="https://www.linkedin.com/in/glae-alejo-a76292354">linkedin</a>
-              <a href="https://www.instagram.com/cunuduh.invalid/">instagram</a>
+              <a href="mailto:glae.alejo@gmail.com">Email Me</a>
+              <a href="https://github.com/Cunuduh">GitHub</a>
+              <a href="https://www.linkedin.com/in/glae-alejo-a76292354">LinkedIn</a>
+              <a href="https://www.instagram.com/cunuduh.invalid/">Instagram</a>
               <a href="https://cunuduh.itch.io/">itch.io</a>
-              <a href="https://x.com/glaeal">x</a>
+              <a href="https://x.com/glaeal">X</a>
             </div>
-          </div>
-          <a class="button" href="#programs">projects</a>
+          </details>
         </div>
       </div>
     </div>
-    <h2 id="programs">projects i've worked on</h2>
-    <p>miscellaneous programs and projects that i've built to explore the field of programming (ai, vex robotics, other cool stuff).</p>
-    <p>click on the links to see the source code on github!</p>
-    <div id="programs-gallery" class="project-list">
+    <h2 id="programs">Projects I've Worked On</h2>
+    <p>Miscellaneous programs and projects that I've built to explore the field of programming (AI, VEX Robotics, and other cool stuff).</p>
+    <p>Click the links to see the source code on GitHub!</p>
+    <div class="project-list">
+      <div class="project-table-header" aria-hidden="true">
+        <span>LINK</span>
+        <span>DESCRIPTION</span>
+      </div>
       <div class="project-item">
         <h3>
-          <a href="https://github.com/Cunuduh/Cunuduh.github.io">this website</a>
+          <a href="https://github.com/Cunuduh/Cunuduh.github.io">This Website</a>
         </h3>
         <div class="project-summary">
-          <p>my personal website built with alpine.js, ft. catppuccin mocha</p>
+          <p>My personal website built with static HTML and CSS in a receipt-inspired style.</p>
         </div>
       </div>
       <div class="project-item">
         <h3>
-          <a href="https://github.com/Cunuduh/hurricane-robotics/tree/competition">hurricane robotics</a>
+          <a href="https://github.com/Cunuduh/hurricane-robotics/tree/competition">Hurricane Robotics</a>
         </h3>
         <div class="project-summary">
-          <p>vex robotics codebase for team 296A, currently based on ez-template</p>
+          <p>VEX Robotics codebase for Team 296A, currently based on EZ-Template.</p>
         </div>
       </div>
       <div class="project-item">
         <h3>
-          <a href="https://github.com/cunuduh/lyra">lyra</a>
+          <a href="https://github.com/cunuduh/lyra">Lyra</a>
         </h3>
         <div class="project-summary">
-          <p>open-source cli tool that converts audio files to .lrc (synchronized lyrics) format using the whisper/gemini model</p>
+          <p>Open-source CLI tool that converts audio files to .lrc (synchronized lyrics) format using the Whisper/Gemini model.</p>
         </div>
       </div>
       <div class="project-item">
         <h3>
-          <a href="https://github.com/cunuduh/vex-path-planner">vex path planner</a>
+          <a href="https://github.com/cunuduh/vex-path-planner">VEX Path Planner</a>
         </h3>
         <div class="project-summary">
-          <p>path planning tool made in godot to speed up autonomous routine development for vex</p>
-        </div>
-      </div>
-      <div class="project-item">
-        <h3>
-          <a href="https://github.com/Cunuduh/naiad.nvim">naiad.nvim</a>
-        </h3>
-        <div class="project-summary">
-          <p>neovim plugin for creative ideation and writing, with inline [!...] syntax triggers for ai-assisted reflection using many llm providers</p>
+          <p>Path-planning tool made in Godot to speed up autonomous routine development for VEX.</p>
         </div>
       </div>
     </div>
-    <h2 id="games">my godot games</h2>
-    <p>here are my godot projects! most of these were actually made for school, hence the simple 1-bit pixel art style and relatively simple game mechanics. try them out!</p>
-    <p>click on the images to play the games on itch.io!</p>
-    <ul id="games-gallery" class="gallery" x-data="galleryComponent([
-      {
-        image: 'img/was-it-worth-it.png',
-        title: 'was it worth it?',
-        link: 'https://cunuduh.itch.io/was-it-worth-it'
-      },
-      {
-        image: 'img/speakeasy_simulator.png',
-        title: 'speakeasy simulator',
-        link: 'https://cunuduh.itch.io/speakeasy-simulator'
-      },
-      {
-        image: 'img/stay_safe_in_science.png',
-        title: 'stay safe in science',
-        link: 'https://cunuduh.itch.io/stay-safe-in-science'
-      },
-      {
-        image: 'img/illegal_aliens.png',
-        title: 'illegal aliens',
-        link: 'https://cunuduh.itch.io/illegal-aliens-game'
-      }
-    ])"
-      x-masonry>
-      <template x-for="(game, index) in items" :key="index">
-        <li class="gallery-item">
-          <img :src="game.image" :alt="game.title + ' logo'" style="image-rendering: crisp-edges;" loading="lazy" @load="$dispatch('reload:masonry')">
-          <a class="button" :href="game.link" x-text="game.title"></a>
-        </li>
-      </template>
+    <h2 id="games">My Godot Games</h2>
+    <p>Here are my Godot projects! Most of these were made for school, hence the simple 1-bit pixel-art style and relatively simple game mechanics. Try them out!</p>
+    <p>Click the images to play the games on itch.io!</p>
+    <ul class="gallery">
+      <li class="gallery-item">
+        <img src="img/was-it-worth-it.png" alt="Was It Worth It? logo" loading="lazy">
+        <a class="button" href="https://cunuduh.itch.io/was-it-worth-it">Was It Worth It?</a>
+      </li>
+      <li class="gallery-item">
+        <img src="img/speakeasy_simulator.png" alt="Speakeasy Simulator logo" loading="lazy">
+        <a class="button" href="https://cunuduh.itch.io/speakeasy-simulator">Speakeasy Simulator</a>
+      </li>
+      <li class="gallery-item">
+        <img src="img/stay_safe_in_science.png" alt="Stay Safe in Science logo" loading="lazy">
+        <a class="button" href="https://cunuduh.itch.io/stay-safe-in-science">Stay Safe in Science</a>
+      </li>
+      <li class="gallery-item">
+        <img src="img/illegal_aliens.png" alt="Illegal Aliens logo" loading="lazy">
+        <a class="button" href="https://cunuduh.itch.io/illegal-aliens-game">Illegal Aliens</a>
+      </li>
     </ul>
-    <h2 id="artwork-11">my artwork (grade 11 AVI3M0 fall 2024-2025)</h2>
-    <p>here's my artwork from my grade 11 art class. this space was also my culminating project submission for the course. i love to experiment with different mediums and styles, and i hope you enjoy my work as much as i enjoyed creating it!</p>
-    <p>click on the images to see more details about each piece!</p>
-    <ul id="artwork-gallery" class="gallery" x-data="galleryComponent(window.galleryData.artwork)"
-      x-masonry>
-      <template x-for="(artwork, index) in items" :key="index">
-        <li class="gallery-item" @click="openModal(artwork); $nextTick(() => {
-          $dispatch('reload:masonry');
-        })">
-          <img :src="artwork.image" :alt="artwork.title" loading="lazy" @load="$dispatch('reload:masonry')">
-          <a class="button" x-text="artwork.title"></a>
-        </li>
-      </template>
-    </ul>
-    <footer id="footer">
-      <div class="footer-content">
-        <div class="footer-section">
-          <h3>connect</h3>
-          <ul class="footer-links">
-            <li><a href="mailto:glae.alejo@gmail.com">email me</a></li>
-            <li><a href="https://github.com/Cunuduh">github</a></li>
-            <li><a href="https://www.linkedin.com/in/glae-alejo-a76292354">linkedin</a></li>
-            <li><a href="https://www.instagram.com/cunuduh.invalid/">instagram</a></li>
-            <li><a href="https://cunuduh.itch.io/">itch.io</a></li>
-            <li><a href="https://x.com/glaeal">x (formerly twitter)</a></li>
-          </ul>
+    <footer>
+      <div class="print-wall">
+        <div class="soy-seal">
+          <img src="style/soy-ink.svg" alt="">
+          <span>PRINTED WITH<br><strong>SOY INK</strong></span>
         </div>
+        <ul class="tech-logos" aria-label="Technologies">
+          <li><img src="img/logos/html5.svg" alt="HTML"></li>
+          <li><img src="img/logos/css.svg" alt="CSS"></li>
+          <li><img src="img/logos/javascript.svg" alt="JavaScript"></li>
+          <li><img src="img/logos/codex.svg" alt="Codex"></li>
+        </ul>
       </div>
+      <h3>Connect</h3>
+      <ul class="footer-links">
+        <li><a href="mailto:glae.alejo@gmail.com">Email Me</a></li>
+        <li><a href="https://github.com/Cunuduh">GitHub</a></li>
+        <li><a href="https://www.linkedin.com/in/glae-alejo-a76292354">LinkedIn</a></li>
+        <li><a href="https://www.instagram.com/cunuduh.invalid/">Instagram</a></li>
+        <li><a href="https://cunuduh.itch.io/">itch.io</a></li>
+        <li><a href="https://x.com/glaeal">X (Formerly Twitter)</a></li>
+      </ul>
+      <p class="receipt-end">THANK YOU FOR VISITING</p>
+      <p class="interaction-hint">CLICK OR DRAG THE BACKGROUND TO PAINT</p>
+      <img class="receipt-barcode" src="style/receipt-barcode.svg" alt="">
     </footer>
-  </main>
+</main>
 </div>
+<script src="script/watercolor.js"></script>
 </body>
 </html>
