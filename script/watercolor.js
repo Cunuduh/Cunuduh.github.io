@@ -1,372 +1,1219 @@
-const canvas = document.getElementById("watercolor-background");
-const context = canvas.getContext("2d");
-const gridWidth = 180;
-const gridHeight = 112;
-const cellCount = gridWidth * gridHeight;
-const automaticSplashInterval = 1500;
-const washPigment = { red: 0x9e, green: 0xc9, blue: 0xf3 };
-const corePigment = { red: 0x93, green: 0xb6, blue: 0xe0 };
-const pooledPigment = { red: 0x56, green: 0x89, blue: 0xbb };
+(() => {
+  const canvas = document.getElementById("watercolor-background");
+  if (!canvas) return;
 
-const dye = new Float32Array(cellCount);
-const oldDye = new Float32Array(cellCount);
-const water = new Float32Array(cellCount);
-const oldWater = new Float32Array(cellCount);
-const velocityX = new Float32Array(cellCount);
-const velocityY = new Float32Array(cellCount);
-const oldVelocityX = new Float32Array(cellCount);
-const oldVelocityY = new Float32Array(cellCount);
-const phase = new Float32Array(cellCount);
-const pigmentOwner = new Uint32Array(cellCount);
-
-const simulationCanvas = document.createElement("canvas");
-simulationCanvas.width = gridWidth;
-simulationCanvas.height = gridHeight;
-const simulationContext = simulationCanvas.getContext("2d");
-const image = simulationContext.createImageData(gridWidth, gridHeight);
-
-const cellIndex = (x, y) => x + y * gridWidth;
-const clamp = (value, minimum, maximum) =>
-  Math.max(minimum, Math.min(maximum, value));
-
-let seed = 927341;
-let time = 0;
-let lastAutomaticSplash = performance.now();
-const activeSplashes = [];
-let nextSplashId = 1;
-let automaticRegionIndex = 0;
-let pointerDown = false;
-let lastPointerX = 0;
-let lastPointerY = 0;
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-function random() {
-  seed ^= seed << 13;
-  seed ^= seed >>> 17;
-  seed ^= seed << 5;
-  return (seed >>> 0) / 4294967295;
-}
-
-for (let i = 0; i < cellCount; i++) phase[i] = random() * Math.PI * 2;
-
-// Backtrace through the velocity field and sample between grid cells.
-function sample(field, x, y) {
-  const boundedX = clamp(x, 0, gridWidth - 1);
-  const boundedY = clamp(y, 0, gridHeight - 1);
-  const x0 = Math.floor(boundedX);
-  const y0 = Math.floor(boundedY);
-  const x1 = Math.min(gridWidth - 1, x0 + 1);
-  const y1 = Math.min(gridHeight - 1, y0 + 1);
-  const tx = boundedX - x0;
-  const ty = boundedY - y0;
-  const top = field[cellIndex(x0, y0)] * (1 - tx) + field[cellIndex(x1, y0)] * tx;
-  const bottom = field[cellIndex(x0, y1)] * (1 - tx) + field[cellIndex(x1, y1)] * tx;
-  return top * (1 - ty) + bottom * ty;
-}
-
-function diffuse(field, amount) {
-  for (let y = 1; y < gridHeight - 1; y++) {
-    for (let x = 1; x < gridWidth - 1; x++) {
-      const i = cellIndex(x, y);
-      const laplacian =
-        field[cellIndex(x - 1, y)] + field[cellIndex(x + 1, y)] +
-        field[cellIndex(x, y - 1)] + field[cellIndex(x, y + 1)] - field[i] * 4;
-      field[i] += laplacian * amount;
-    }
-  }
-}
-
-function simulationStep() {
-  time += 0.018;
-  oldVelocityX.set(velocityX);
-  oldVelocityY.set(velocityY);
-  oldDye.set(dye);
-  oldWater.set(water);
-
-  for (let y = 1; y < gridHeight - 1; y++) {
-    for (let x = 1; x < gridWidth - 1; x++) {
-      const i = cellIndex(x, y);
-      const noiseStrength = 0.005 * oldWater[i];
-      const noiseX = Math.sin(phase[i] + time + x * 0.13 + y * 0.07) * noiseStrength;
-      const noiseY = Math.cos(phase[i] * 1.7 - time * 0.8 - x * 0.06 + y * 0.11) * noiseStrength;
-      velocityX[i] = (oldVelocityX[i] + noiseX) * 0.982;
-      velocityY[i] = (oldVelocityY[i] + noiseY) * 0.982;
-    }
-  }
-
-  diffuse(velocityX, 0.11);
-  diffuse(velocityY, 0.11);
-
-  for (let y = 1; y < gridHeight - 1; y++) {
-    for (let x = 1; x < gridWidth - 1; x++) {
-      const i = cellIndex(x, y);
-      dye[i] = sample(oldDye, x - velocityX[i] * 0.88, y - velocityY[i] * 0.88);
-      water[i] = sample(oldWater, x - velocityX[i] * 0.78, y - velocityY[i] * 0.78);
-    }
-  }
-
-  diffuse(dye, 0.012);
-  diffuse(water, 0.052);
-
-  for (let i = 0; i < cellCount; i++) {
-    water[i] *= 0.996;
-    dye[i] = Math.max(0, dye[i] * 0.9995 - 0.00002);
-  }
-}
-
-function depositSplash(splash, radius, strength) {
-  const { x: gridX, y: gridY, wobble } = splash;
-
-  for (let y = Math.max(1, Math.floor(gridY - radius - 1)); y <= Math.min(gridHeight - 2, Math.ceil(gridY + radius + 1)); y++) {
-    for (let x = Math.max(1, Math.floor(gridX - radius - 1)); x <= Math.min(gridWidth - 2, Math.ceil(gridX + radius + 1)); x++) {
-      const dx = x - gridX;
-      const dy = y - gridY;
-      const distance = Math.hypot(dx, dy) + 0.001;
-      const angle = Math.atan2(dy, dx);
-      const localRadius = radius * (1 + 0.1 * Math.sin(angle * 5 + wobble) + 0.04 * Math.sin(angle * 9 - wobble));
-
-      if (distance > localRadius) continue;
-
-      const normalizedDistance = distance / localRadius;
-      const falloff = Math.exp(-(distance * distance) / (radius * radius * 0.34));
-      const tideLine = Math.exp(-Math.pow((normalizedDistance - 0.82) / 0.105, 2));
-      const i = cellIndex(x, y);
-      const pigmentDeposit = (falloff * 0.72 + tideLine * 0.48) * strength;
-      dye[i] = Math.min(1.7, dye[i] + pigmentDeposit);
-      pigmentOwner[i] = splash.id;
-      water[i] = Math.min(1.7, water[i] + falloff * strength * 1.35);
-      const outward = (falloff + tideLine * 0.35) * strength * 0.18;
-      velocityX[i] += (dx / distance) * outward + (random() - 0.5) * 0.014;
-      velocityY[i] += (dy / distance) * outward + (random() - 0.5) * 0.014;
-    }
-  }
-}
-
-function queueSplash(gridX, gridY) {
-  const radius = 18 + random() * 8;
-  const splash = {
-    id: nextSplashId++,
-    x: gridX,
-    y: gridY,
-    age: 0,
-    duration: 0.42,
-    fadeDelay: 1.2,
-    lifespan: 9 + radius * 0.22,
-    radius,
-    wobble: random() * Math.PI * 2
-  };
-
-  if (reducedMotion) {
-    depositSplash(splash, splash.radius, 1.05);
-    render();
-    return;
-  }
-
-  activeSplashes.push(splash);
-}
-
-function expandSplashes(deltaTime) {
-  for (let i = activeSplashes.length - 1; i >= 0; i--) {
-    const splash = activeSplashes[i];
-    splash.age += deltaTime;
-
-    if (splash.age <= splash.duration) {
-      const progress = splash.age / splash.duration;
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-      depositSplash(splash, Math.max(0.5, splash.radius * easedProgress), 0.115);
-    } else if (splash.age >= splash.fadeDelay) {
-      erodeSplash(splash);
-    }
-
-    if (splash.age >= splash.lifespan) activeSplashes.splice(i, 1);
-  }
-}
-
-// Expanding the erosion radius makes the centre clear before the perimeter.
-function erodeSplash(splash) {
-  const fadeDuration = splash.lifespan - splash.fadeDelay;
-  const fadeProgress = clamp((splash.age - splash.fadeDelay) / fadeDuration, 0, 1);
-  const erosionRadius = splash.radius * fadeProgress;
-  const warpedExtent = erosionRadius * 1.4;
-  const minimumX = Math.max(1, Math.floor(splash.x - warpedExtent));
-  const maximumX = Math.min(gridWidth - 2, Math.ceil(splash.x + warpedExtent));
-  const minimumY = Math.max(1, Math.floor(splash.y - warpedExtent));
-  const maximumY = Math.min(gridHeight - 2, Math.ceil(splash.y + warpedExtent));
-
-  for (let y = minimumY; y <= maximumY; y++) {
-    for (let x = minimumX; x <= maximumX; x++) {
-      const i = cellIndex(x, y);
-      if (pigmentOwner[i] !== splash.id) continue;
-      const dx = x - splash.x;
-      const dy = y - splash.y;
-      const distance = Math.hypot(dx, dy);
-      const angle = Math.atan2(dy, dx);
-      const frontWarp =
-        1 +
-        Math.sin(angle * 3 + splash.wobble) * 0.2 +
-        Math.sin(angle * 7 - splash.wobble * 1.4) * 0.11 +
-        Math.sin(phase[i] + splash.wobble) * 0.08;
-      const localErosionRadius = erosionRadius * frontWarp;
-      if (distance > localErosionRadius) continue;
-      const proximityToCentre = 1 - distance / Math.max(localErosionRadius, 0.001);
-      const paperVariation = 0.94 + Math.sin(phase[i]) * 0.06;
-      const fadeStrength = (0.0045 + proximityToCentre * 0.015) * paperVariation;
-      dye[i] *= 1 - fadeStrength;
-    }
-  }
-}
-
-function resizeCanvas() {
-  const scale = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.round(window.innerWidth * scale);
-  canvas.height = Math.round(window.innerHeight * scale);
-}
-
-function simulationViewport() {
-  const canvasRatio = canvas.width / canvas.height;
-  const simulationRatio = gridWidth / gridHeight;
-
-  if (canvasRatio > simulationRatio) {
-    const height = gridWidth / canvasRatio;
-    return { x: 0, y: (gridHeight - height) / 2, width: gridWidth, height };
-  }
-
-  const width = gridHeight * canvasRatio;
-  return { x: (gridWidth - width) / 2, y: 0, width, height: gridHeight };
-}
-
-function render() {
-  const pixels = image.data;
-
-  for (let i = 0; i < cellCount; i++) {
-    const amount = clamp(dye[i], 0, 1.3);
-    const wash = clamp(amount * 0.72 + water[i] * 0.06, 0, 1);
-    const core = clamp((amount - 0.35) / 0.7, 0, 1);
-    const coreMix = core * core;
-    const alpha = clamp(wash * 0.42 + core * 0.4, 0, 0.84);
-    const offset = i * 4;
-    const x = i % gridWidth;
-    const y = Math.floor(i / gridWidth);
-    let localPeak = 0;
-
-    if (x > 0 && x < gridWidth - 1 && y > 0 && y < gridHeight - 1) {
-      const neighbourAverage = (
-        dye[cellIndex(x - 1, y)] + dye[cellIndex(x + 1, y)] +
-        dye[cellIndex(x, y - 1)] + dye[cellIndex(x, y + 1)]
-      ) * 0.25;
-      localPeak = Math.max(0, amount - neighbourAverage);
-    }
-
-    const pooling = clamp(localPeak * 2.2 + amount * water[i] * 0.08, 0, 0.42);
-    const baseRed = washPigment.red * (1 - coreMix) + corePigment.red * coreMix;
-    const baseGreen = washPigment.green * (1 - coreMix) + corePigment.green * coreMix;
-    const baseBlue = washPigment.blue * (1 - coreMix) + corePigment.blue * coreMix;
-    const red = baseRed * (1 - pooling) + pooledPigment.red * pooling;
-    const green = baseGreen * (1 - pooling) + pooledPigment.green * pooling;
-    const blue = baseBlue * (1 - pooling) + pooledPigment.blue * pooling;
-    pixels[offset] = Math.round(red);
-    pixels[offset + 1] = Math.round(green);
-    pixels[offset + 2] = Math.round(blue);
-    pixels[offset + 3] = Math.round(alpha * 255);
-  }
-
-  simulationContext.putImageData(image, 0, 0);
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = "high";
-  const viewport = simulationViewport();
-  context.drawImage(
-    simulationCanvas,
-    viewport.x,
-    viewport.y,
-    viewport.width,
-    viewport.height,
-    0,
-    0,
-    canvas.width,
-    canvas.height
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isSafari = isIOS || (
+    /Safari/.test(navigator.userAgent) &&
+    !/Chrome|Chromium|CriOS|Edg|OPR|Android/.test(navigator.userAgent)
   );
-}
+  if (isSafari) document.documentElement.classList.add("safari");
 
-function canvasPositionToSimulation(clientX, clientY) {
-  const bounds = canvas.getBoundingClientRect();
-  const viewport = simulationViewport();
-  return {
-    x: viewport.x + ((clientX - bounds.left) / bounds.width) * viewport.width,
-    y: viewport.y + ((clientY - bounds.top) / bounds.height) * viewport.height
+  const fail = (message, error) => {
+    console.error(`[watercolor] ${message}`, error || "");
   };
-}
 
-function pointerPosition(event) {
-  return canvasPositionToSimulation(event.clientX, event.clientY);
-}
+  const unavailable = (message, error) => {
+    fail(message, error);
+    const hint = document.querySelector(".interaction-hint");
+    if (hint) {
+      const detail = error?.message || String(error || "");
+      hint.textContent = `WATERCOLOR UNAVAILABLE: ${message}${detail ? ` (${detail})` : ""}`;
+    }
+  };
 
-canvas.addEventListener("pointerdown", event => {
-  pointerDown = true;
-  canvas.setPointerCapture?.(event.pointerId);
-  const point = pointerPosition(event);
-  lastPointerX = point.x;
-  lastPointerY = point.y;
-  queueSplash(point.x, point.y);
-});
+  async function start() {
+    if (!navigator.gpu) {
+      unavailable("WebGPU is required for the watercolour background.");
+      return;
+    }
 
-canvas.addEventListener("pointermove", event => {
-  if (!pointerDown) return;
-  const point = pointerPosition(event);
-  const dx = point.x - lastPointerX;
-  const dy = point.y - lastPointerY;
+    const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" }) ||
+      await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      unavailable("No WebGPU adapter is available.");
+      return;
+    }
+    const adapterInfo = adapter.info || {};
+    console.info("[watercolor] WebGPU adapter:", adapterInfo);
+    const adapterDescription = ["vendor", "architecture", "device", "description"]
+      .map(field => String(adapterInfo[field] || ""))
+      .join(" ")
+      .toLowerCase();
+    if (/software|swiftshader|llvmpipe|fallback/.test(adapterDescription)) {
+      console.warn("[watercolor] WebGPU appears to be using a software or fallback adapter.", adapterInfo);
+    }
+    const device = await adapter.requestDevice();
+    device.lost.then(info => unavailable(`WebGPU device lost: ${info.message || info.reason}`));
+    device.addEventListener("uncapturederror", event => {
+      unavailable("WebGPU validation error.", event.error);
+    });
 
-  if (dx * dx + dy * dy >= 16) {
-    queueSplash(point.x, point.y);
-    lastPointerX = point.x;
-    lastPointerY = point.y;
+    const context = canvas.getContext("webgpu");
+    if (!context) throw new Error("Could not create the WebGPU canvas context.");
+
+    const format = navigator.gpu.getPreferredCanvasFormat();
+    context.configure({ device, format, alphaMode: "premultiplied" });
+
+    const stateAspect = 1.6;
+    const ringCapacity = 288;
+    const particlesPerRing = 384;
+    const particleCount = ringCapacity * particlesPerRing;
+    const particleStride = 40;
+    const ringStride = 32;
+    const gridWidth = 128;
+    const gridHeight = 80;
+    const gridSlots = 12;
+    const gridEntryCount = gridWidth * gridHeight * gridSlots;
+    const collisionIterations = 3;
+    const propagationDuration = 8.2;
+    const sourceLifetime = propagationDuration;
+    const automaticSplashInterval = 1875;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const receipt = document.querySelector(".receipt-shell");
+    const ringSlots = new Array(ringCapacity).fill(null);
+    const ringBacking = new ArrayBuffer(ringCapacity * ringStride);
+    const ringFloats = new Float32Array(ringBacking);
+    const ringUints = new Uint32Array(ringBacking);
+    const frameBacking = new ArrayBuffer(32);
+    const frameFloats = new Float32Array(frameBacking);
+    const frameUints = new Uint32Array(frameBacking);
+    let randomSeed = 1439281;
+    let nextGroup = 1;
+    let automaticRegionIndex = 0;
+
+    const frameBuffer = device.createBuffer({
+      label: "watercolour frame uniforms",
+      size: 32,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+    const particleBuffer = device.createBuffer({
+      label: "watercolour wavefront particles",
+      size: particleCount * particleStride,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    });
+    const ringBuffer = device.createBuffer({
+      label: "watercolour ring data",
+      size: ringCapacity * ringStride,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    });
+    const occupancyBuffer = device.createBuffer({
+      label: "watercolour collision occupancy",
+      size: gridEntryCount * Uint32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.STORAGE
+    });
+    const collisionBuffer = device.createBuffer({
+      label: "watercolour collision forces",
+      size: particleCount * 4 * Float32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.STORAGE
+    });
+    const frontBuffer = device.createBuffer({
+      label: "watercolour reconstructed fronts",
+      size: particleCount * 2 * Float32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.STORAGE
+    });
+    function random() {
+      randomSeed ^= randomSeed << 13;
+      randomSeed ^= randomSeed >>> 17;
+      randomSeed ^= randomSeed << 5;
+      return (randomSeed >>> 0) / 4294967295;
+    }
+
+    async function makePaperTexture() {
+      try {
+        const response = await fetch("img/watercolour-paper-tile.webp");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const bitmap = await createImageBitmap(await response.blob());
+        const texture = device.createTexture({
+          label: "watercolour paper",
+          size: [bitmap.width, bitmap.height],
+          format: "rgba8unorm",
+          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        device.queue.copyExternalImageToTexture(
+          { source: bitmap, flipY: true },
+          { texture },
+          [bitmap.width, bitmap.height]
+        );
+        bitmap.close?.();
+        return texture;
+      } catch (error) {
+        console.warn("[watercolor] Paper texture unavailable; using procedural steering.", error);
+        const texture = device.createTexture({
+          label: "watercolour paper fallback",
+          size: [1, 1],
+          format: "rgba8unorm",
+          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+        });
+        device.queue.writeTexture(
+          { texture },
+          new Uint8Array([184, 184, 184, 255]),
+          { bytesPerRow: 4 },
+          [1, 1]
+        );
+        return texture;
+      }
+    }
+
+    const paperTexture = await makePaperTexture();
+    const paperSampler = device.createSampler({
+      addressModeU: "repeat",
+      addressModeV: "repeat",
+      magFilter: "linear",
+      minFilter: "linear"
+    });
+
+    const computeCode = `
+      const PI: f32 = 3.14159265359;
+      const TAU: f32 = 6.28318530718;
+      const PARTICLE_COUNT: u32 = ${particleCount}u;
+      const PARTICLES_PER_RING: u32 = ${particlesPerRing}u;
+      const GRID_SLOTS: u32 = ${gridSlots}u;
+      const GRID_ENTRY_COUNT: u32 = ${gridEntryCount}u;
+
+      struct Frame {
+        now: f32,
+        delta: f32,
+        aspect: f32,
+        particleCount: u32,
+        canvasSize: vec2f,
+        gridSize: vec2u,
+      };
+
+      struct Particle {
+        position: vec2f,
+        radial: f32,
+        angle: f32,
+        drift: f32,
+        seed: f32,
+        motionState: u32,
+        radialVelocity: f32,
+        alive: u32,
+        ringIndex: u32,
+      };
+
+      struct Ring {
+        center: vec2f,
+        birth: f32,
+        maxRadius: f32,
+        strength: f32,
+        seed: f32,
+        group: u32,
+        enabled: u32,
+      };
+
+      @group(0) @binding(0) var<uniform> frame: Frame;
+      @group(0) @binding(1) var<storage, read_write> particles: array<Particle>;
+      @group(0) @binding(2) var<storage, read> rings: array<Ring>;
+      @group(0) @binding(3) var<storage, read_write> occupancy: array<atomic<u32>>;
+      @group(0) @binding(4) var<storage, read_write> collisionForces: array<vec4f>;
+      @group(0) @binding(5) var<storage, read_write> frontPositions: array<vec2f>;
+      @group(0) @binding(6) var paper: texture_2d<f32>;
+      @group(0) @binding(7) var paperSampler: sampler;
+
+      fn hash(value: f32) -> f32 {
+        return fract(sin(value * 127.1) * 43758.5453);
+      }
+
+      fn periodicNoise(turn: f32, frequency: u32, seed: f32) -> f32 {
+        let scaled = fract(turn) * f32(frequency);
+        let node = u32(floor(scaled));
+        let next = (node + 1u) % frequency;
+        var blend = fract(scaled);
+        blend = blend * blend * (3.0 - 2.0 * blend);
+        return mix(hash(f32(node) + seed), hash(f32(next) + seed), blend);
+      }
+
+      fn insideDomain(position: vec2f) -> bool {
+        return position.x >= 0.0 && position.x < frame.aspect &&
+          position.y >= 0.0 && position.y < 1.0;
+      }
+
+      fn gridCell(position: vec2f) -> vec2u {
+        let normalized = clamp(position / vec2f(frame.aspect, 1.0), vec2f(0.0), vec2f(0.999999));
+        return vec2u(normalized * vec2f(frame.gridSize));
+      }
+
+      fn visibility(age: f32) -> f32 {
+        return 1.0 - smoothstep(7.4, ${sourceLifetime.toFixed(1)}, age);
+      }
+
+      @compute @workgroup_size(256)
+      fn clearSpatialData(@builtin(global_invocation_id) invocation: vec3u) {
+        let index = invocation.x;
+        if (index < GRID_ENTRY_COUNT) {
+          atomicStore(&occupancy[index], 0u);
+        }
+        if (index < PARTICLE_COUNT) {
+          collisionForces[index] = vec4f(0.0);
+        }
+      }
+
+      @compute @workgroup_size(128)
+      fn advance(@builtin(global_invocation_id) invocation: vec3u) {
+        let index = invocation.x;
+        if (index >= frame.particleCount || index >= PARTICLE_COUNT) { return; }
+
+        var particle = particles[index];
+        if (particle.alive == 0u) { return; }
+
+        let ring = rings[particle.ringIndex];
+        let age = frame.now - ring.birth;
+        if (ring.enabled == 0u || age > ${sourceLifetime.toFixed(1)}) {
+          particle.alive = 0u;
+          particles[index] = particle;
+          return;
+        }
+        if (age < 0.0) { return; }
+
+        let turn = particle.angle / TAU;
+        let coarse = periodicNoise(turn, 7u, ring.seed) - 0.5;
+        let detail = periodicNoise(turn, 23u, ring.seed + 19.7) - 0.5;
+        let direction = vec2f(cos(particle.angle + particle.drift), sin(particle.angle + particle.drift));
+        let samplePosition = ring.center + direction * max(particle.radial, 0.001);
+        let paperUv = samplePosition / vec2f(frame.aspect, 1.0) * 2.3 + vec2f(ring.seed * 0.013, ring.seed * 0.021);
+        let paperValue = textureSampleLevel(paper, paperSampler, paperUv, 0.0).r - 0.72;
+        let localMaximum = ring.maxRadius * (1.0 + coarse * 0.15 + detail * 0.105 + paperValue * 0.075);
+        let progress = clamp(age / ${propagationDuration.toFixed(1)}, 0.0, 1.0);
+        let speed = localMaximum * (PI * 0.5 / ${propagationDuration.toFixed(1)}) *
+          max(cos(progress * PI * 0.5), 0.0);
+        let particleVariation = hash(particle.seed) - 0.5;
+        let resistance = clamp(
+          1.0 + paperValue * 0.24 + detail * 0.08 + particleVariation * 0.025,
+          0.82,
+          1.18
+        );
+        let naturalVelocity = speed * resistance;
+        if (particle.motionState == 0u) {
+          let accelerationResponse = 1.0 - exp(-2.4 * frame.delta);
+          particle.radialVelocity = mix(
+            particle.radialVelocity,
+            naturalVelocity,
+            accelerationResponse
+          );
+          particle.radial = min(
+            localMaximum,
+            particle.radial + particle.radialVelocity * frame.delta
+          );
+        } else {
+          particle.radialVelocity *= exp(-0.7 * frame.delta);
+          if (abs(particle.radialVelocity) < 0.0003) {
+            particle.radialVelocity = 0.0;
+          }
+          particle.radial = clamp(
+            particle.radial + particle.radialVelocity * frame.delta,
+            0.0002,
+            localMaximum
+          );
+        }
+        let sideways = periodicNoise(turn, 13u, ring.seed + 41.3) - 0.5;
+        particle.drift += (sideways * 0.005 + paperValue * 0.002) * frame.delta;
+        particle.drift = clamp(particle.drift, -0.014, 0.014);
+        let movedDirection = vec2f(cos(particle.angle + particle.drift), sin(particle.angle + particle.drift));
+        particle.position = ring.center + movedDirection * particle.radial;
+        particles[index] = particle;
+      }
+
+      @compute @workgroup_size(128)
+      fn reconstructFront(@builtin(global_invocation_id) invocation: vec3u) {
+        let index = invocation.x;
+        if (index >= frame.particleCount || index >= PARTICLE_COUNT) { return; }
+        let particle = particles[index];
+        let ring = rings[particle.ringIndex];
+        let age = frame.now - ring.birth;
+        if (particle.alive == 0u || ring.enabled == 0u || age < 0.0) {
+          frontPositions[index] = particle.position;
+          return;
+        }
+
+        let localIndex = index % PARTICLES_PER_RING;
+        let ringStart = index - localIndex;
+        var radial = 0.0;
+        var drift = 0.0;
+        var totalWeight = 0.0;
+        for (var offset = -8; offset <= 8; offset++) {
+          let wrapped = (i32(localIndex) + offset + i32(PARTICLES_PER_RING)) %
+            i32(PARTICLES_PER_RING);
+          let distance = f32(abs(offset));
+          let weight = exp(-0.5 * distance * distance / 12.25);
+          let sampleParticle = particles[ringStart + u32(wrapped)];
+          radial += sampleParticle.radial * weight;
+          drift += sampleParticle.drift * weight;
+          totalWeight += weight;
+        }
+        let direction = vec2f(
+          cos(particle.angle + drift / totalWeight),
+          sin(particle.angle + drift / totalWeight)
+        );
+        frontPositions[index] = ring.center + direction * (radial / totalWeight);
+      }
+
+      @compute @workgroup_size(128)
+      fn fillGrid(@builtin(global_invocation_id) invocation: vec3u) {
+        let index = invocation.x;
+        if (index >= frame.particleCount || index >= PARTICLE_COUNT || particles[index].alive == 0u) { return; }
+        let particle = particles[index];
+        let ring = rings[particle.ringIndex];
+        let age = frame.now - ring.birth;
+        if (ring.enabled == 0u || age < 0.0 || visibility(age) < 0.12) { return; }
+
+        let localIndex = index % PARTICLES_PER_RING;
+        let ringStart = index - localIndex;
+        let nextIndex = ringStart + (localIndex + 1u) % PARTICLES_PER_RING;
+        let midpoint = (frontPositions[index] + frontPositions[nextIndex]) * 0.5;
+        if (!insideDomain(midpoint)) { return; }
+        let cell = gridCell(midpoint);
+        let base = (cell.y * frame.gridSize.x + cell.x) * GRID_SLOTS;
+        for (var slot = 0u; slot < GRID_SLOTS; slot++) {
+          let entry = base + slot;
+          if (atomicLoad(&occupancy[entry]) == 0u) {
+            let exchange = atomicCompareExchangeWeak(&occupancy[entry], 0u, index + 1u);
+            if (exchange.exchanged) { return; }
+          }
+        }
+      }
+
+      @compute @workgroup_size(128)
+      fn detectCollisions(@builtin(global_invocation_id) invocation: vec3u) {
+        let index = invocation.x;
+        if (index >= frame.particleCount || index >= PARTICLE_COUNT || particles[index].alive == 0u) { return; }
+        let particle = particles[index];
+        let ring = rings[particle.ringIndex];
+        let age = frame.now - ring.birth;
+        let point = frontPositions[index];
+        if (ring.enabled == 0u || age < 0.0 || visibility(age) < 0.12 || !insideDomain(point)) { return; }
+
+        let cell = gridCell(point);
+        let particleDirection = normalize(point - ring.center);
+        let particleWorldVelocity = particleDirection * particle.radialVelocity;
+        let particleMass = 1.0 + abs(particle.radialVelocity) / 0.045;
+        var velocityTarget = 0.0;
+        var radialCorrection = 0.0;
+        var contactWeight = 0.0;
+        for (var offsetY = -1; offsetY <= 1; offsetY++) {
+          for (var offsetX = -1; offsetX <= 1; offsetX++) {
+            let x = clamp(i32(cell.x) + offsetX, 0, i32(frame.gridSize.x) - 1);
+            let y = clamp(i32(cell.y) + offsetY, 0, i32(frame.gridSize.y) - 1);
+            let base = (u32(y) * frame.gridSize.x + u32(x)) * GRID_SLOTS;
+            for (var slot = 0u; slot < GRID_SLOTS; slot++) {
+              let occupant = atomicLoad(&occupancy[base + slot]);
+              if (occupant == 0u) { continue; }
+              let segmentIndex = occupant - 1u;
+              let other = particles[segmentIndex];
+              if (other.ringIndex == particle.ringIndex) { continue; }
+              let otherRing = rings[other.ringIndex];
+              let otherAge = frame.now - otherRing.birth;
+              if (otherRing.enabled == 0u || visibility(otherAge) < 0.12) { continue; }
+
+              let otherLocalIndex = segmentIndex % PARTICLES_PER_RING;
+              let otherRingStart = segmentIndex - otherLocalIndex;
+              let otherNextIndex = otherRingStart +
+                (otherLocalIndex + 1u) % PARTICLES_PER_RING;
+              let segmentStart = frontPositions[segmentIndex];
+              let segmentEnd = frontPositions[otherNextIndex];
+              let segment = segmentEnd - segmentStart;
+              let segmentLengthSquared = max(dot(segment, segment), 0.0000001);
+              let along = clamp(dot(point - segmentStart, segment) / segmentLengthSquared, 0.0, 1.0);
+              let closest = segmentStart + segment * along;
+              let separationVector = point - closest;
+              let separation = length(separationVector);
+              if (separation >= 0.014) { continue; }
+
+              var away = separationVector / max(separation, 0.0001);
+              if (separation < 0.0001) {
+                away = normalize(ring.center - otherRing.center + vec2f(0.0001, 0.0));
+              }
+              let otherNext = particles[otherNextIndex];
+              let otherStartDirection = normalize(segmentStart - otherRing.center);
+              let otherEndDirection = normalize(segmentEnd - otherRing.center);
+              let otherWorldVelocity = mix(
+                otherStartDirection * other.radialVelocity,
+                otherEndDirection * otherNext.radialVelocity,
+                along
+              );
+              let otherSpeed = mix(
+                abs(other.radialVelocity),
+                abs(otherNext.radialVelocity),
+                along
+              );
+              let otherMass = 1.0 + otherSpeed / 0.045;
+              let ownNormalVelocity = dot(particleWorldVelocity, away);
+              let otherNormalVelocity = dot(otherWorldVelocity, away);
+              let approachSpeed = otherNormalVelocity - ownNormalVelocity;
+              let combinedMass = particleMass + otherMass;
+              let sharedNormalVelocity =
+                (ownNormalVelocity * particleMass + otherNormalVelocity * otherMass) /
+                combinedMass;
+              var resolvedVelocity = particle.radialVelocity;
+              if (approachSpeed > 0.0) {
+                resolvedVelocity += (sharedNormalVelocity - ownNormalVelocity) *
+                  dot(away, particleDirection);
+              }
+              let contact = 1.0 - smoothstep(0.004, 0.014, separation);
+              let penetration = max(0.0, 0.01 - separation);
+              let correction = dot(
+                away * penetration * (otherMass / combinedMass),
+                particleDirection
+              );
+              velocityTarget += resolvedVelocity * contact;
+              radialCorrection += correction * contact;
+              contactWeight += contact;
+            }
+          }
+        }
+
+        if (contactWeight > 0.0) {
+          collisionForces[index] = vec4f(
+            velocityTarget / contactWeight,
+            radialCorrection / contactWeight,
+            min(contactWeight, 1.0),
+            0.0
+          );
+        }
+      }
+
+      @compute @workgroup_size(128)
+      fn applyCollisions(@builtin(global_invocation_id) invocation: vec3u) {
+        let index = invocation.x;
+        if (index >= frame.particleCount || index >= PARTICLE_COUNT || particles[index].alive == 0u) { return; }
+        var particle = particles[index];
+        let ring = rings[particle.ringIndex];
+        let age = frame.now - ring.birth;
+        if (ring.enabled == 0u || age < 0.0 || visibility(age) < 0.12) { return; }
+
+        let localIndex = index % PARTICLES_PER_RING;
+        let ringStart = index - localIndex;
+        var velocityTarget = 0.0;
+        var radialCorrection = 0.0;
+        var contactWeight = 0.0;
+        for (var offset = -7; offset <= 7; offset++) {
+          let wrapped = (i32(localIndex) + offset + i32(PARTICLES_PER_RING)) %
+            i32(PARTICLES_PER_RING);
+          let distance = f32(abs(offset));
+          let kernel = exp(-0.5 * distance * distance / 9.0);
+          let collision = collisionForces[ringStart + u32(wrapped)];
+          velocityTarget += collision.x * collision.z * kernel;
+          radialCorrection += collision.y * collision.z * kernel;
+          contactWeight += collision.z * kernel;
+        }
+        if (contactWeight > 0.0001) {
+          let resolvedVelocity = velocityTarget / contactWeight;
+          let correction = radialCorrection / contactWeight;
+          particle.radialVelocity = mix(particle.radialVelocity, resolvedVelocity, 0.62);
+          particle.radial = max(
+            0.0002,
+            particle.radial + clamp(correction, -0.004, 0.004) * 0.72
+          );
+          particle.motionState = 1u;
+          let direction = vec2f(
+            cos(particle.angle + particle.drift),
+            sin(particle.angle + particle.drift)
+          );
+          particle.position = ring.center + direction * particle.radial;
+          particles[index] = particle;
+        }
+      }
+
+      @compute @workgroup_size(128)
+      fn calculateConstraints(@builtin(global_invocation_id) invocation: vec3u) {
+        let index = invocation.x;
+        if (index >= frame.particleCount || index >= PARTICLE_COUNT || particles[index].alive == 0u) { return; }
+        let particle = particles[index];
+        let ring = rings[particle.ringIndex];
+        let age = frame.now - ring.birth;
+        if (ring.enabled == 0u || age < 0.0) { return; }
+
+        let localIndex = index % PARTICLES_PER_RING;
+        let ringStart = index - localIndex;
+        let previousIndex = ringStart + (localIndex + PARTICLES_PER_RING - 1u) % PARTICLES_PER_RING;
+        let nextIndex = ringStart + (localIndex + 1u) % PARTICLES_PER_RING;
+        let previousRadius = particles[previousIndex].radial;
+        let nextRadius = particles[nextIndex].radial;
+        let steepness = max(
+          abs(previousRadius - particle.radial),
+          abs(nextRadius - particle.radial)
+        );
+        let smoothing = smoothstep(0.0035, 0.012, steepness);
+        let neighbourRadius = (previousRadius + nextRadius) * 0.5;
+        let correction = clamp((neighbourRadius - particle.radial) * smoothing * 0.34, -0.002, 0.002);
+        collisionForces[index] = vec4f(correction, 0.0, 0.0, 0.0);
+      }
+
+      @compute @workgroup_size(128)
+      fn applyConstraints(@builtin(global_invocation_id) invocation: vec3u) {
+        let index = invocation.x;
+        if (index >= frame.particleCount || index >= PARTICLE_COUNT || particles[index].alive == 0u) { return; }
+        var particle = particles[index];
+        let ring = rings[particle.ringIndex];
+        let age = frame.now - ring.birth;
+        if (ring.enabled == 0u || age < 0.0) { return; }
+
+        particle.radial = max(0.0002, particle.radial + collisionForces[index].x);
+        let direction = vec2f(cos(particle.angle + particle.drift), sin(particle.angle + particle.drift));
+        particle.position = ring.center + direction * particle.radial;
+        particles[index] = particle;
+      }
+    `;
+
+    const drawCode = `
+      const TAU: f32 = 6.28318530718;
+      const PARTICLES_PER_RING: u32 = ${particlesPerRing}u;
+
+      struct Frame {
+        now: f32,
+        delta: f32,
+        aspect: f32,
+        particleCount: u32,
+        canvasSize: vec2f,
+        gridSize: vec2u,
+      };
+
+      struct Particle {
+        position: vec2f,
+        radial: f32,
+        angle: f32,
+        drift: f32,
+        seed: f32,
+        motionState: u32,
+        radialVelocity: f32,
+        alive: u32,
+        ringIndex: u32,
+      };
+
+      struct Ring {
+        center: vec2f,
+        birth: f32,
+        maxRadius: f32,
+        strength: f32,
+        seed: f32,
+        group: u32,
+        enabled: u32,
+      };
+
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) local: vec2f,
+        @location(1) strength: f32,
+        @location(2) drying: f32,
+        @location(3) retreatVariation: f32,
+        @location(4) pigmentConcentration: f32,
+        @location(5) pigmentCoordinates: vec2f,
+        @location(6) paperUv: vec2f,
+      };
+
+      @group(0) @binding(0) var<uniform> frame: Frame;
+      @group(0) @binding(1) var<storage, read> particles: array<Particle>;
+      @group(0) @binding(2) var<storage, read> rings: array<Ring>;
+      @group(0) @binding(3) var<storage, read> frontPositions: array<vec2f>;
+      @group(0) @binding(4) var paper: texture_2d<f32>;
+      @group(0) @binding(5) var paperSampler: sampler;
+
+      fn hash(value: f32) -> f32 {
+        return fract(sin(value * 127.1) * 43758.5453);
+      }
+
+      fn periodicNoise(turn: f32, frequency: u32, seed: f32) -> f32 {
+        let scaled = fract(turn) * f32(frequency);
+        let node = u32(floor(scaled));
+        let next = (node + 1u) % frequency;
+        var blend = fract(scaled);
+        blend = blend * blend * (3.0 - 2.0 * blend);
+        return mix(hash(f32(node) + seed), hash(f32(next) + seed), blend);
+      }
+
+      fn retreatVariation(turn: f32, seed: f32) -> f32 {
+        let angularWarp = (periodicNoise(turn, 7u, seed + 43.6) - 0.5) * 0.05;
+        let warpedTurn = turn + angularWarp;
+        let broad = periodicNoise(warpedTurn, 9u, seed + 73.1) - 0.5;
+        let medium = periodicNoise(warpedTurn + broad * 0.035, 21u, seed + 101.3) - 0.5;
+        let fingerSource = periodicNoise(warpedTurn + medium * 0.018, 37u, seed + 131.7);
+        let fingers = pow(fingerSource, 3.4) - 0.23;
+        let feather = periodicNoise(warpedTurn, 53u, seed + 197.9) - 0.5;
+        return broad * 0.13 + medium * 0.09 + fingers * 0.17 + feather * 0.035;
+      }
+
+      fn pigmentConcentration(turn: f32, seed: f32) -> f32 {
+        let angularWarp = (periodicNoise(turn, 7u, seed + 43.6) - 0.5) * 0.035;
+        let warpedTurn = turn + angularWarp;
+        let primary = pow(periodicNoise(warpedTurn, 17u, seed + 229.4), 1.55);
+        let fine = pow(periodicNoise(warpedTurn, 37u, seed + 311.8), 2.6);
+        return clamp(max(primary, fine * 0.68), 0.0, 1.0);
+      }
+
+      fn frontNormal(
+        particleIndex: u32,
+        ringStart: u32,
+        center: vec2f,
+        position: vec2f
+      ) -> vec2f {
+        let localIndex = particleIndex - ringStart;
+        let previousIndex = ringStart +
+          (localIndex + PARTICLES_PER_RING - 8u) % PARTICLES_PER_RING;
+        let nextIndex = ringStart + (localIndex + 8u) % PARTICLES_PER_RING;
+        let tangent =
+          frontPositions[nextIndex] -
+          frontPositions[previousIndex];
+        let radial = normalize(position - center);
+        if (length(tangent) < 0.0001) { return radial; }
+        var normal = normalize(vec2f(-tangent.y, tangent.x));
+        if (dot(normal, radial) < 0.0) { normal = -normal; }
+        return normalize(mix(radial, normal, 0.68));
+      }
+
+      @vertex
+      fn vertexMain(
+        @builtin(vertex_index) vertexIndex: u32,
+        @builtin(instance_index) instanceIndex: u32
+      ) -> VertexOutput {
+        let corners = array<vec2f, 6>(
+          vec2f(-1.0, 0.0), vec2f(0.18, 0.0), vec2f(-1.0, 1.0),
+          vec2f(-1.0, 1.0), vec2f(0.18, 0.0), vec2f(0.18, 1.0)
+        );
+        var output: VertexOutput;
+        if (instanceIndex >= frame.particleCount || instanceIndex >= ${particleCount}u) {
+          output.position = vec4f(3.0, 3.0, 0.0, 1.0);
+          output.local = vec2f(0.0);
+          output.strength = 0.0;
+          output.drying = 1.0;
+          output.retreatVariation = 0.0;
+          output.pigmentConcentration = 0.0;
+          output.pigmentCoordinates = vec2f(0.0);
+          output.paperUv = vec2f(0.0);
+          return output;
+        }
+        let particle = particles[instanceIndex];
+        let localIndex = instanceIndex % ${particlesPerRing}u;
+        let ringStart = instanceIndex - localIndex;
+        let neighbourIndex = ringStart + (localIndex + 1u) % ${particlesPerRing}u;
+        let neighbour = particles[neighbourIndex];
+        let ring = rings[particle.ringIndex];
+        let age = frame.now - ring.birth;
+        if (particle.alive == 0u || neighbour.alive == 0u || ring.enabled == 0u ||
+            age < 0.0 || age > ${sourceLifetime.toFixed(1)}) {
+          output.position = vec4f(3.0, 3.0, 0.0, 1.0);
+          output.local = vec2f(0.0);
+          output.strength = 0.0;
+          output.drying = 1.0;
+          output.retreatVariation = 0.0;
+          output.pigmentConcentration = 0.0;
+          output.pigmentCoordinates = vec2f(0.0);
+          output.paperUv = vec2f(0.0);
+          return output;
+        }
+
+        let canvasAspect = frame.canvasSize.x / frame.canvasSize.y;
+        let visibleHeight = min(1.0, frame.aspect / canvasAspect);
+        let visibleSize = vec2f(visibleHeight * canvasAspect, visibleHeight);
+        let worldPerPixel = visibleSize.x / frame.canvasSize.x;
+        let corner = corners[vertexIndex];
+        let particlePosition = frontPositions[instanceIndex];
+        let neighbourPosition = frontPositions[neighbourIndex];
+        let endpointPosition = mix(particlePosition, neighbourPosition, corner.y);
+        let endpointRadial = mix(
+          length(particlePosition - ring.center),
+          length(neighbourPosition - ring.center),
+          corner.y
+        );
+        let particleNormal = frontNormal(
+          instanceIndex,
+          ringStart,
+          ring.center,
+          particlePosition
+        );
+        let neighbourNormal = frontNormal(
+          neighbourIndex,
+          ringStart,
+          ring.center,
+          neighbourPosition
+        );
+        let mixedNormal = mix(particleNormal, neighbourNormal, corner.y);
+        var endpointNormal = normalize(endpointPosition - ring.center);
+        if (length(mixedNormal) > 0.0001) {
+          endpointNormal = normalize(mixedNormal);
+        }
+        let trailLength = min(
+          max(worldPerPixel * 68.0, 0.06),
+          max(endpointRadial, worldPerPixel * 1.5)
+        );
+        let worldPosition = endpointPosition + endpointNormal * corner.x * trailLength;
+        let clip = (worldPosition - vec2f(frame.aspect * 0.5, 0.5)) * 2.0 / visibleSize;
+        output.position = vec4f(clip, 0.0, 1.0);
+        output.local = corner;
+        output.strength = ring.strength;
+        output.drying = smoothstep(0.0, ${propagationDuration.toFixed(1)}, age);
+        output.retreatVariation = mix(
+          retreatVariation(particle.angle / TAU, ring.seed),
+          retreatVariation(neighbour.angle / TAU, ring.seed),
+          corner.y
+        );
+        output.pigmentConcentration = mix(
+          pigmentConcentration(particle.angle / TAU, ring.seed),
+          pigmentConcentration(neighbour.angle / TAU, ring.seed),
+          corner.y
+        );
+        let particleTurn = particle.angle / TAU;
+        var neighbourTurn = neighbour.angle / TAU;
+        if (neighbourTurn < particleTurn) { neighbourTurn += 1.0; }
+        output.pigmentCoordinates = vec2f(
+          mix(particleTurn, neighbourTurn, corner.y),
+          ring.seed
+        );
+        output.paperUv = worldPosition / vec2f(frame.aspect, 1.0) * 2.3;
+        return output;
+      }
+
+      @fragment
+      fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
+        let rear = smoothstep(-1.0, -0.86, input.local.x);
+        let front = 1.0 - smoothstep(0.04, 0.18, input.local.x);
+        let dryingFront = mix(-1.15, 0.26, input.drying);
+        let retreatEnvelope = 1.0 - smoothstep(0.86, 1.0, input.drying);
+        let retreatEdge = dryingFront + input.retreatVariation * retreatEnvelope;
+        let pigmentRemaining = smoothstep(
+          retreatEdge - 0.105,
+          retreatEdge + 0.065,
+          input.local.x
+        );
+        let washFlow = periodicNoise(
+          fract(input.pigmentCoordinates.x + input.local.x * 0.028),
+          19u,
+          input.pigmentCoordinates.y + 593.4
+        );
+        let washBreakup = periodicNoise(
+          fract(input.pigmentCoordinates.x - input.local.x * 0.059),
+          47u,
+          input.pigmentCoordinates.y + 647.1
+        );
+        let washDensity = 0.84 + washFlow * 0.22 + washBreakup * 0.08;
+        let paperSize = vec2f(textureDimensions(paper));
+        let paperStep = 3.0 / paperSize;
+        let paperValue = textureSample(paper, paperSampler, input.paperUv).r;
+        let surroundingPaper = (
+          textureSample(paper, paperSampler, input.paperUv + vec2f(paperStep.x, 0.0)).r +
+          textureSample(paper, paperSampler, input.paperUv - vec2f(paperStep.x, 0.0)).r +
+          textureSample(paper, paperSampler, input.paperUv + vec2f(0.0, paperStep.y)).r +
+          textureSample(paper, paperSampler, input.paperUv - vec2f(0.0, paperStep.y)).r
+        ) * 0.25;
+        let localPit = smoothstep(0.012, 0.05, surroundingPaper - paperValue);
+        let darkPore = 1.0 - smoothstep(0.59, 0.67, paperValue);
+        let paperResistance = clamp(max(localPit, darkPore * 0.9), 0.0, 1.0);
+        let washDeposition = 1.0 - paperResistance * 0.94;
+        let tideDeposition = 1.0 - paperResistance * 0.86;
+        let wash = rear * front * 0.42 * washDensity * input.strength *
+          pigmentRemaining * washDeposition;
+        let tideWidth = select(0.24, 0.16, input.local.x >= 0.0);
+        let tideFalloff = select(1.45, 2.0, input.local.x >= 0.0);
+        let tideDistance = abs(input.local.x) / tideWidth;
+        let tideProfile = exp(-pow(tideDistance, tideFalloff));
+        let tideDensity = 0.44 + input.pigmentConcentration * 0.86;
+        let tide = tideProfile * 0.94 * tideDensity * input.strength *
+          pigmentRemaining * tideDeposition;
+        return vec4f(wash, tide, 0.0, 0.0);
+      }
+    `;
+
+    const compositeCode = `
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) uv: vec2f,
+      };
+
+      @group(0) @binding(0) var intensityTexture: texture_2d<f32>;
+      @group(0) @binding(1) var intensitySampler: sampler;
+
+      @vertex
+      fn vertexMain(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+        let positions = array<vec2f, 3>(
+          vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0)
+        );
+        let point = positions[vertexIndex];
+        var output: VertexOutput;
+        output.position = vec4f(point, 0.0, 1.0);
+        output.uv = point * vec2f(0.5, -0.5) + vec2f(0.5);
+        return output;
+      }
+
+      @fragment
+      fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
+        let intensity = textureSample(intensityTexture, intensitySampler, input.uv).rg;
+        let wash = intensity.r;
+        let tide = intensity.g;
+        let paleBlue = vec3f(0.76, 0.92, 1.0);
+        let wetBlue = vec3f(0.59, 0.82, 1.0);
+        let tideBlue = vec3f(0.38, 0.68, 1.0);
+        var colour = mix(paleBlue, wetBlue, smoothstep(0.04, 0.42, wash) * 0.55);
+        colour = mix(colour, tideBlue, smoothstep(0.08, 0.94, tide) * 0.72);
+        let alpha = clamp(max(wash * 1.12, tide * 0.62), 0.0, 0.94);
+        return vec4f(colour * alpha, alpha);
+      }
+    `;
+
+    const computeLayout = device.createBindGroupLayout({
+      label: "watercolour compute layout",
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+        { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+        { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+        { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+        { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+        { binding: 5, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+        { binding: 6, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "float" } },
+        { binding: 7, visibility: GPUShaderStage.COMPUTE, sampler: { type: "filtering" } }
+      ]
+    });
+    const drawLayout = device.createBindGroupLayout({
+      label: "watercolour particle draw layout",
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } },
+        { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: "read-only-storage" } },
+        { binding: 2, visibility: GPUShaderStage.VERTEX, buffer: { type: "read-only-storage" } },
+        { binding: 3, visibility: GPUShaderStage.VERTEX, buffer: { type: "read-only-storage" } },
+        { binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+        { binding: 5, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } }
+      ]
+    });
+    const compositeLayout = device.createBindGroupLayout({
+      label: "watercolour composite layout",
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } }
+      ]
+    });
+
+    async function createCheckedShader(label, code) {
+      const module = device.createShaderModule({ label, code });
+      const compilation = await module.getCompilationInfo();
+      const errors = compilation.messages.filter(message => message.type === "error");
+      if (errors.length) {
+        const details = errors.map(error => `${error.lineNum}:${error.linePos} ${error.message}`).join("; ");
+        throw new Error(`${label}: ${details}`);
+      }
+      return module;
+    }
+
+    const [computeModule, drawModule, compositeModule] = await Promise.all([
+      createCheckedShader("watercolour particle compute", computeCode),
+      createCheckedShader("watercolour particle draw", drawCode),
+      createCheckedShader("watercolour composite", compositeCode)
+    ]);
+    const computePipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [computeLayout] });
+    const maxBlend = {
+      color: { srcFactor: "one", dstFactor: "one", operation: "max" },
+      alpha: { srcFactor: "one", dstFactor: "one", operation: "max" }
+    };
+
+    const [clearPipeline, advancePipeline, reconstructPipeline, fillPipeline, collisionPipeline, applyCollisionPipeline, constraintPipeline, applyConstraintPipeline, drawPipeline, compositePipeline] = await Promise.all([
+      device.createComputePipelineAsync({ layout: computePipelineLayout, compute: { module: computeModule, entryPoint: "clearSpatialData" } }),
+      device.createComputePipelineAsync({ layout: computePipelineLayout, compute: { module: computeModule, entryPoint: "advance" } }),
+      device.createComputePipelineAsync({ layout: computePipelineLayout, compute: { module: computeModule, entryPoint: "reconstructFront" } }),
+      device.createComputePipelineAsync({ layout: computePipelineLayout, compute: { module: computeModule, entryPoint: "fillGrid" } }),
+      device.createComputePipelineAsync({ layout: computePipelineLayout, compute: { module: computeModule, entryPoint: "detectCollisions" } }),
+      device.createComputePipelineAsync({ layout: computePipelineLayout, compute: { module: computeModule, entryPoint: "applyCollisions" } }),
+      device.createComputePipelineAsync({ layout: computePipelineLayout, compute: { module: computeModule, entryPoint: "calculateConstraints" } }),
+      device.createComputePipelineAsync({ layout: computePipelineLayout, compute: { module: computeModule, entryPoint: "applyConstraints" } }),
+      device.createRenderPipelineAsync({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [drawLayout] }),
+        vertex: { module: drawModule, entryPoint: "vertexMain" },
+        fragment: {
+          module: drawModule,
+          entryPoint: "fragmentMain",
+          targets: [{ format: "rgba8unorm", blend: maxBlend }]
+        },
+        primitive: { topology: "triangle-list" }
+      }),
+      device.createRenderPipelineAsync({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [compositeLayout] }),
+        vertex: { module: compositeModule, entryPoint: "vertexMain" },
+        fragment: { module: compositeModule, entryPoint: "fragmentMain", targets: [{ format }] },
+        primitive: { topology: "triangle-list" }
+      })
+    ]);
+
+    const computeBindGroup = device.createBindGroup({
+      layout: computeLayout,
+      entries: [
+        { binding: 0, resource: { buffer: frameBuffer } },
+        { binding: 1, resource: { buffer: particleBuffer } },
+        { binding: 2, resource: { buffer: ringBuffer } },
+        { binding: 3, resource: { buffer: occupancyBuffer } },
+        { binding: 4, resource: { buffer: collisionBuffer } },
+        { binding: 5, resource: { buffer: frontBuffer } },
+        { binding: 6, resource: paperTexture.createView() },
+        { binding: 7, resource: paperSampler }
+      ]
+    });
+    const drawBindGroup = device.createBindGroup({
+      layout: drawLayout,
+      entries: [
+        { binding: 0, resource: { buffer: frameBuffer } },
+        { binding: 1, resource: { buffer: particleBuffer } },
+        { binding: 2, resource: { buffer: ringBuffer } },
+        { binding: 3, resource: { buffer: frontBuffer } },
+        { binding: 4, resource: paperTexture.createView() },
+        { binding: 5, resource: paperSampler }
+      ]
+    });
+    const intensitySampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+    let intensityTexture;
+    let compositeBindGroup;
+
+    function rebuildIntensityTargets() {
+      intensityTexture?.destroy();
+      intensityTexture = device.createTexture({
+        label: "watercolour wash and tide intensity",
+        size: [canvas.width, canvas.height],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+      });
+      compositeBindGroup = device.createBindGroup({
+        layout: compositeLayout,
+        entries: [
+          { binding: 0, resource: intensityTexture.createView() },
+          { binding: 1, resource: intensitySampler }
+        ]
+      });
+    }
+
+    function writeFrame(now, delta, activeParticleCount) {
+      frameFloats[0] = now;
+      frameFloats[1] = delta;
+      frameFloats[2] = stateAspect;
+      frameUints[3] = activeParticleCount;
+      frameFloats[4] = canvas.width;
+      frameFloats[5] = canvas.height;
+      frameUints[6] = gridWidth;
+      frameUints[7] = gridHeight;
+      device.queue.writeBuffer(frameBuffer, 0, frameBacking);
+    }
+
+    function expireRings(now) {
+      let changed = false;
+      for (let slot = 0; slot < ringCapacity; slot++) {
+        const ring = ringSlots[slot];
+        if (ring && ring.active && now - ring.birth > sourceLifetime) {
+          ring.active = false;
+          ringUints[slot * 8 + 7] = 0;
+          changed = true;
+        }
+      }
+      if (changed) device.queue.writeBuffer(ringBuffer, 0, ringBacking);
+    }
+
+    function drawFrame(now, delta) {
+      if (!intensityTexture) return;
+      expireRings(now);
+      let activeParticleCount = 0;
+      for (let slot = ringCapacity - 1; slot >= 0; slot--) {
+        if (ringSlots[slot]?.active) {
+          activeParticleCount = (slot + 1) * particlesPerRing;
+          break;
+        }
+      }
+      writeFrame(now, delta, activeParticleCount);
+      const encoder = device.createCommandEncoder({ label: "watercolour frame" });
+
+      let pass = encoder.beginComputePass();
+      pass.setBindGroup(0, computeBindGroup);
+      if (activeParticleCount > 0) {
+        const particleWorkgroups = Math.ceil(activeParticleCount / 128);
+        const clearWorkgroups = Math.ceil(Math.max(gridEntryCount, particleCount) / 256);
+        pass.setPipeline(advancePipeline);
+        pass.dispatchWorkgroups(particleWorkgroups);
+        for (let iteration = 0; iteration < collisionIterations; iteration++) {
+          pass.setPipeline(clearPipeline);
+          pass.dispatchWorkgroups(clearWorkgroups);
+          pass.setPipeline(reconstructPipeline);
+          pass.dispatchWorkgroups(particleWorkgroups);
+          pass.setPipeline(fillPipeline);
+          pass.dispatchWorkgroups(particleWorkgroups);
+          pass.setPipeline(collisionPipeline);
+          pass.dispatchWorkgroups(particleWorkgroups);
+          pass.setPipeline(applyCollisionPipeline);
+          pass.dispatchWorkgroups(particleWorkgroups);
+        }
+        pass.setPipeline(constraintPipeline);
+        pass.dispatchWorkgroups(particleWorkgroups);
+        pass.setPipeline(applyConstraintPipeline);
+        pass.dispatchWorkgroups(particleWorkgroups);
+        pass.setPipeline(reconstructPipeline);
+        pass.dispatchWorkgroups(particleWorkgroups);
+      }
+      pass.end();
+
+      pass = encoder.beginRenderPass({
+        colorAttachments: [{
+          view: intensityTexture.createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
+          storeOp: "store"
+        }]
+      });
+      pass.setPipeline(drawPipeline);
+      pass.setBindGroup(0, drawBindGroup);
+      pass.draw(6, activeParticleCount);
+      pass.end();
+
+      pass = encoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
+          storeOp: "store"
+        }]
+      });
+      pass.setPipeline(compositePipeline);
+      pass.setBindGroup(0, compositeBindGroup);
+      pass.draw(3);
+      pass.end();
+      device.queue.submit([encoder.finish()]);
+    }
+
+    function initializeParticles(slot, ring, initialAge) {
+      const backing = new ArrayBuffer(particlesPerRing * particleStride);
+      const floats = new Float32Array(backing);
+      const uints = new Uint32Array(backing);
+      const initialProgress = Math.min(Math.max(initialAge / propagationDuration, 0), 1);
+      const initialRadius = Math.max(0.0002, ring.radius * Math.sin(initialProgress * Math.PI * 0.5));
+      const initialVelocity = ring.radius * (Math.PI * 0.5 / propagationDuration) *
+        Math.max(Math.cos(initialProgress * Math.PI * 0.5), 0);
+      for (let index = 0; index < particlesPerRing; index++) {
+        const word = index * 10;
+        const angle = index / particlesPerRing * Math.PI * 2;
+        floats[word] = ring.x + Math.cos(angle) * initialRadius;
+        floats[word + 1] = ring.y + Math.sin(angle) * initialRadius;
+        floats[word + 2] = initialRadius;
+        floats[word + 3] = angle;
+        floats[word + 4] = 0;
+        floats[word + 5] = random() * 1000;
+        uints[word + 6] = 0;
+        floats[word + 7] = initialVelocity;
+        uints[word + 8] = 1;
+        uints[word + 9] = slot;
+      }
+      device.queue.writeBuffer(particleBuffer, slot * particlesPerRing * particleStride, backing);
+    }
+
+    function writeRing(slot, ring) {
+      const word = slot * 8;
+      ringFloats[word] = ring.x;
+      ringFloats[word + 1] = ring.y;
+      ringFloats[word + 2] = ring.birth;
+      ringFloats[word + 3] = ring.radius;
+      ringFloats[word + 4] = ring.strength;
+      ringFloats[word + 5] = ring.seed;
+      ringUints[word + 6] = ring.group;
+      ringUints[word + 7] = 1;
+      ringSlots[slot] = ring;
+    }
+
+    function addSplash(point, radius = 0.235, instant = false) {
+      const now = performance.now() / 1000;
+      const group = nextGroup++;
+      const delays = [0, 1.9, 3.7];
+      const strengths = [1, 0.88, 0.8];
+      const staticAges = [7.8, 4.8, 2.0];
+      expireRings(now);
+      const freeSlots = [];
+      for (let slot = 0; slot < ringCapacity && freeSlots.length < delays.length; slot++) {
+        if (!ringSlots[slot]?.active) freeSlots.push(slot);
+      }
+      if (freeSlots.length < delays.length) return;
+      for (let wave = 0; wave < 3; wave++) {
+        const initialAge = instant ? staticAges[wave] : 0;
+        const ring = {
+          x: point.x,
+          y: point.y,
+          birth: instant ? now - initialAge : now + delays[wave],
+          radius,
+          strength: strengths[wave],
+          seed: random() * 997,
+          group,
+          active: true
+        };
+        const slot = freeSlots[wave];
+        writeRing(slot, ring);
+        initializeParticles(slot, ring, initialAge);
+      }
+      device.queue.writeBuffer(ringBuffer, 0, ringBacking);
+    }
+
+    function canvasPosition(clientX, clientY) {
+      const bounds = canvas.getBoundingClientRect();
+      const point = {
+        x: Math.max(0, Math.min(1, (clientX - bounds.left) / bounds.width)),
+        y: 1 - Math.max(0, Math.min(1, (clientY - bounds.top) / bounds.height))
+      };
+      const canvasAspect = bounds.width / bounds.height;
+      if (canvasAspect > stateAspect) {
+        const height = stateAspect / canvasAspect;
+        point.y = (1 - height) * 0.5 + point.y * height;
+      } else {
+        const width = canvasAspect / stateAspect;
+        point.x = (1 - width) * 0.5 + point.x * width;
+      }
+      return { x: point.x * stateAspect, y: point.y };
+    }
+
+    function addRandomSplash() {
+      if (!receipt) return;
+      const receiptBounds = receipt.getBoundingClientRect();
+      const inset = 20;
+      const regions = [
+        { left: inset, right: receiptBounds.left - inset, top: inset, bottom: innerHeight - inset },
+        { left: receiptBounds.right + inset, right: innerWidth - inset, top: inset, bottom: innerHeight - inset },
+        { left: inset, right: innerWidth - inset, top: inset, bottom: receiptBounds.top - inset },
+        { left: inset, right: innerWidth - inset, top: receiptBounds.bottom + inset, bottom: innerHeight - inset }
+      ].filter(region => region.right - region.left > 32 && region.bottom - region.top > 32);
+      if (!regions.length) return;
+      const region = regions[automaticRegionIndex++ % regions.length];
+      addSplash(canvasPosition(
+        region.left + random() * (region.right - region.left),
+        region.top + random() * (region.bottom - region.top)
+      ), 0.21 + random() * 0.055);
+    }
+
+    function resizeCanvas() {
+      const cssWidth = Math.max(1, canvas.clientWidth);
+      const cssHeight = Math.max(1, canvas.clientHeight);
+      const requestedScale = Math.min(window.devicePixelRatio || 1, isSafari ? 1 : 1.25);
+      const maximumDimension = isSafari ? 1200 : 1400;
+      const fittedScale = Math.min(requestedScale, maximumDimension / Math.max(cssWidth, cssHeight));
+      const width = Math.max(1, Math.round(cssWidth * fittedScale));
+      const height = Math.max(1, Math.round(cssHeight * fittedScale));
+      if (canvas.width === width && canvas.height === height) return;
+      canvas.width = width;
+      canvas.height = height;
+      rebuildIntensityTargets();
+      drawFrame(performance.now() / 1000, 0);
+    }
+
+    document.addEventListener("click", event => {
+      if (receipt?.contains(event.target)) return;
+      addSplash(canvasPosition(event.clientX, event.clientY), 0.235, reducedMotion);
+      if (reducedMotion) drawFrame(performance.now() / 1000, 0);
+    });
+    window.addEventListener("resize", resizeCanvas, { passive: true });
+
+    device.queue.writeBuffer(ringBuffer, 0, ringBacking);
+    resizeCanvas();
+    if (reducedMotion) return;
+
+    let lastFrame = performance.now();
+    let nextAutomaticSplash = lastFrame + 1500;
+    function frame(timestamp) {
+      const delta = Math.min(Math.max((timestamp - lastFrame) / 1000, 0), 0.05);
+      lastFrame = timestamp;
+      if (timestamp >= nextAutomaticSplash) {
+        addRandomSplash();
+        nextAutomaticSplash = timestamp + automaticSplashInterval;
+      }
+      drawFrame(timestamp / 1000, delta);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   }
-});
 
-canvas.addEventListener("pointerup", () => { pointerDown = false; });
-canvas.addEventListener("pointercancel", () => { pointerDown = false; });
-
-window.addEventListener("resize", () => {
-  resizeCanvas();
-  render();
-});
-
-function addRandomSplash() {
-  const receipt = document.querySelector(".receipt-shell").getBoundingClientRect();
-  const canvasBounds = canvas.getBoundingClientRect();
-  const inset = 8;
-  const regions = [
-    { left: inset, top: inset, right: receipt.left - inset, bottom: canvasBounds.height - inset },
-    { left: receipt.right + inset, top: inset, right: canvasBounds.width - inset, bottom: canvasBounds.height - inset },
-    { left: inset, top: inset, right: canvasBounds.width - inset, bottom: receipt.top - inset },
-    { left: inset, top: receipt.bottom + inset, right: canvasBounds.width - inset, bottom: canvasBounds.height - inset }
-  ].filter(region => region.right - region.left >= 24 && region.bottom - region.top >= 24);
-
-  if (regions.length === 0) return;
-
-  const region = regions[automaticRegionIndex % regions.length];
-  automaticRegionIndex++;
-  const clientX = region.left + random() * (region.right - region.left);
-  const clientY = region.top + random() * (region.bottom - region.top);
-  const point = canvasPositionToSimulation(clientX, clientY);
-  queueSplash(point.x, point.y);
-}
-
-function loop(timestamp) {
-  if (timestamp - lastAutomaticSplash >= automaticSplashInterval) {
-    addRandomSplash();
-    lastAutomaticSplash = timestamp;
-  }
-
-  expandSplashes(0.018);
-  simulationStep();
-  render();
-  requestAnimationFrame(loop);
-}
-
-resizeCanvas();
-render();
-
-if (!reducedMotion) {
-  requestAnimationFrame(loop);
-}
+  start().catch(error => unavailable("WebGPU initialization failed.", error));
+})();

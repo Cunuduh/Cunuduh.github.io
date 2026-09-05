@@ -6,13 +6,29 @@
   font-weight: 400;
 }
 
+@font-face {
+  font-family: "IM FELL DW Pica";
+  src: url("../fonts/IMFellDWPica-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IM FELL DW Pica";
+  src: url("../fonts/IMFellDWPica-Italic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
 :root {
   color-scheme: light;
-  --paper: rgb(255 255 255 / 60%);
+  --paper: rgb(255 255 255 / 48%);
   --paper-solid: #fff;
   --ink: #202020;
   --rule: 1px solid var(--ink);
   --heavy-rule: 2px solid var(--ink);
+  --hero-font: "IM FELL DW Pica";
   --content-font: "Fake Receipt";
   --button-font: "Inter";
 }
@@ -23,25 +39,63 @@ html, body {
   min-height: 100%;
   margin: 0;
   background-color: #c4c4c4;
-  background-image: url("../img/watercolour-paper.webp");
-  background-position: center top;
-  background-repeat: repeat;
-  background-size: 960px 1440px;
-  background-attachment: fixed;
 }
-body { overflow-x: hidden; padding: 3rem 0 6rem; color: var(--ink); font: 1rem/1.45 var(--content-font); font-synthesis: none; }
+
+body {
+  isolation: isolate;
+  overflow-x: hidden;
+  padding: 3rem 0 6rem;
+  color: var(--ink);
+  font: 1rem/1.45 var(--content-font);
+  font-synthesis: none;
+}
+
+body::before {
+  position: fixed;
+  z-index: -2;
+  inset: -30vh 0;
+  background-color: #c4c4c4;
+  background-image: url("../img/watercolour-paper-tile.webp");
+  background-position: center;
+  background-repeat: repeat;
+  background-size: 75vw auto;
+  content: "";
+  filter: blur(0.4px);
+  pointer-events: none;
+  will-change: transform;
+}
 
 #watercolor-background {
   position: fixed;
+  z-index: -1;
   inset: 0;
   width: 100%;
   height: 100%;
   border: 0;
   background: transparent;
   cursor: crosshair;
-  filter: brightness(1.294);
+  filter: none;
   mix-blend-mode: multiply;
   touch-action: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  body::before,
+  #watercolor-background {
+    animation: paper-parallax linear both;
+    animation-timeline: scroll(root block);
+  }
+
+  #watercolor-background {
+    top: -30vh;
+    bottom: auto;
+    height: 160vh;
+  }
+
+  @keyframes paper-parallax {
+    from { transform: translateY(12rem); }
+    to { transform: translateY(0); }
+  }
 }
 
 .receipt-shell {
@@ -54,14 +108,37 @@ body { overflow-x: hidden; padding: 3rem 0 6rem; color: var(--ink); font: 1rem/1
   transform-origin: center;
 }
 
+.safari .receipt-shell {
+  filter: none;
+}
+
+.safari .receipt-shell::before {
+  position: absolute;
+  z-index: -1;
+  inset: 12px 0;
+  background: rgb(32 32 32 / 16%);
+  content: "";
+  filter: blur(10px);
+  transform: translate(8px, 10px);
+}
+
+.safari main {
+  -webkit-backdrop-filter: blur(9px) saturate(1);
+}
+
 main {
   width: 100%;
   min-height: calc(100vh - 9rem);
   margin: 0;
   padding: 0 2.25rem 2.5rem;
-  background: var(--paper);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  background-color: var(--paper);
+  background-image: url("../img/receipt-paper-texture.webp?v=2");
+  background-position: center top;
+  background-repeat: repeat-y;
+  background-size: 100% auto;
+  -webkit-backdrop-filter: blur(9px);
+  backdrop-filter: blur(9px);
+  /* perforated edges */
   clip-path: polygon(
     0 14px, 2.5% 0, 5% 14px, 7.5% 0, 10% 14px,
     12.5% 0, 15% 14px, 17.5% 0, 20% 14px, 22.5% 0,
@@ -86,7 +163,7 @@ main {
 }
 
 h1, h2, h3 { line-height: 1.15; }
-h1 { margin: 0.2rem 0; font-size: clamp(2rem, 7vw, 3.25rem); letter-spacing: -0.045em; }
+h1 { margin: 0.2rem 0; font-size: clamp(6rem, 15vw, 8rem); letter-spacing: -0.045em; font-family: var(--hero-font); font-style: italic; }
 h2 { margin: 0; padding: 0.75rem 0; border-bottom: 1px dashed var(--ink); color: var(--ink); font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; }
 h3 { margin: 0; font-size: 1rem; }
 p { max-width: 75ch; margin: 0.6rem 0; }
@@ -95,11 +172,12 @@ a:hover, a:focus-visible { background: var(--ink); color: var(--paper); }
 
 #hero { padding: 4.5rem 0 2.5rem; border-bottom: 1px dashed var(--ink); text-align: center; }
 .hero-text { max-width: 34rem; margin: 0 auto; }
-.receipt-meta { display: flex; justify-content: space-between; margin-bottom: 1.75rem; color: var(--ink); font-size: 0.65rem; letter-spacing: 0.12em; }
 .button-container { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
 .hero-text .button-container { justify-content: center; }
 .button { display: inline-block; padding: 0.45rem 0.7rem; border: var(--heavy-rule); background: transparent; color: var(--ink); cursor: pointer; font: 700 0.75rem/1.2 var(--button-font); letter-spacing: 0.08em; text-align: center; text-decoration: none; text-transform: uppercase; }
 .button:hover, .button:focus-visible, .dropdown-container[open] > .button { background: var(--ink); color: var(--paper-solid); }
+.hero-container { position: relative; display: inline-block; width: max(14rem, 50%); }
+.hero-description { position: absolute; top: 0.5rem; right: 0; font-family: var(--hero-font); font-size: clamp(1.5rem, 4.25vw, 2rem); text-transform: uppercase; }
 
 .project-list { display: flex; flex-direction: column; margin: 1.25rem 0 0; border-top: 1px dashed var(--ink); }
 .project-table-header, .project-item { display: grid; grid-template-columns: minmax(8rem, 0.8fr) 1.5fr; gap: 1rem; }
@@ -147,5 +225,7 @@ footer { margin-top: 4rem; border-top: 1px dashed var(--ink); color: var(--ink);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; transform: none; }
+  #watercolor-background { top: 0; bottom: auto; height: 100%; animation: none; transform: none; }
   .receipt-shell { transform: none; }
 }
