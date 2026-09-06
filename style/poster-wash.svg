@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800">
+  <defs>
+    <filter id="wash" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".012 .025" numOctaves="4" seed="31" result="flow"/>
+      <feDisplacementMap in="SourceGraphic" in2="flow" scale="65" xChannelSelector="R" yChannelSelector="G"/>
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <filter id="pigment" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".6" numOctaves="3" seed="17" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+    <mask id="grain"><rect width="600" height="800" fill="#fff"/><rect width="600" height="800" filter="url(#pigment)" opacity=".45"/></mask>
+  </defs>
+  <g filter="url(#wash)" mask="url(#grain)" fill="none" stroke="#6998c0">
+    <path d="M-70 94 Q140 5 269 100 T680 89" stroke-width="95" opacity=".14"/>
+    <path d="M-70 117 Q140 35 269 124 T680 112" stroke-width="14" opacity=".13"/>
+    <path d="M-50 730 Q160 595 325 697 T680 717" stroke-width="80" opacity=".16"/>
+    <path d="M-50 750 Q160 624 325 725 T680 743" stroke-width="12" opacity=".12"/>
+  </g>
+</svg>
