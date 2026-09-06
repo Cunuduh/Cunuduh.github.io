@@ -6,6 +6,8 @@
 .archive-fallback li { border-bottom: 1px dashed currentColor; }
 .archive-fallback a { display: flex; gap: 1rem; padding: .6rem .2rem; color: inherit; text-decoration: none; }
 .archive-fallback span { width: 2.2rem; flex-shrink: 0; }
+.simple-view .archive-fallback a:hover,
+.simple-view .archive-fallback a:focus-visible { background: var(--ink); color: var(--paper-solid); }
 
 .archive-dialog {
   width: calc(100vw - 1rem);
@@ -13,12 +15,13 @@
   max-height: calc(100dvh - 1rem);
   padding: 0;
   border: 0;
-  overflow: hidden;
+  box-sizing: border-box;
+  overflow: visible;
   color: #202020;
   background: transparent;
 }
 .archive-dialog::backdrop { background: #3244554d; backdrop-filter: blur(4px); }
-.archive-dialog-inner { padding: 0; background: transparent; }
+.archive-dialog-inner { width: 100%; max-height: inherit; padding: 0; background: transparent; }
 .archive-close {
   position: absolute; z-index: 5; top: 0; right: 12px;
   width: 44px; height: 44px; border: 1px solid #ffffffb0; border-radius: 50%;
@@ -27,15 +30,17 @@
 }
 .archive-close:focus-visible { outline: 2px solid #344e63; outline-offset: 3px; }
 .poster-stage {
-  position: relative; width: 100%; height: calc(100dvh - 12px);
-  min-height: 220px; overflow: hidden;
-  display: grid; place-items: center;
+  position: relative; width: 100%; height: calc(100dvh - 1rem); max-height: calc(100dvh - 1rem);
+  min-height: 0; box-sizing: border-box; overflow-x: hidden; overflow-y: auto;
+  display: flex; justify-content: center; align-items: safe center;
+  padding: 6px 0 18px;
   perspective: 1000px;
   touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 .poster-sheet {
   position: relative; isolation: isolate; flex-shrink: 0;
-  width: min(680px, calc(100vw - 32px), calc((100dvh - 54px) * .60)); padding: 25px;
+  width: min(680px, calc(100vw - 32px), calc((100dvh - 54px) * .60)); max-width: 100%; padding: 25px;
   box-sizing: border-box; color: #202020;
   background: linear-gradient(#ffffff70, #ffffff70), url('../img/watercolour-paper-tile.webp') center / 520px;
   background-color: #fff;
@@ -63,16 +68,16 @@
 .poster-tracks { list-style: none; padding: 0; margin: 0; counter-reset: poster-track; }
 .poster-tracks li { counter-increment: poster-track; border-bottom: 1px dotted #52677970; }
 .poster-tracks a {
-  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 44px;
   padding: 7px 4px; color: #202020; font: 13px/1.4 var(--content-font), monospace;
-  text-decoration: none; cursor: pointer;
+  text-decoration: none; cursor: pointer; overflow-wrap: anywhere;
 }
 .poster-tracks a::before { content: counter(poster-track, decimal-leading-zero); color: #5e7587; font-size: 10px; }
 .poster-tracks a::after { content: '↗'; margin-left: auto; }
 .poster-tracks a:hover, .poster-tracks a[aria-current="true"] { background: #759fc220; }
 .poster-tracks a:focus-visible { outline: 2px solid #526f86; outline-offset: 1px; }
 .poster-footer {
-  display: flex; justify-content: space-between; gap: 12px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px;
   margin-top: 17px; padding-top: 9px; border-top: 3px solid #7c9db966;
   font: 9px/1.5 var(--content-font), monospace; letter-spacing: .07em;
 }
@@ -80,9 +85,14 @@
 .poster-status:empty { display: none; }
 @media (max-width: 700px) {
   .archive-heading { display: block; }
-  .poster-sheet { padding: 18px; }
+  .poster-stage { align-items: flex-start; padding-top: 54px; }
+  .poster-sheet { width: min(680px, calc(100% - 32px)); padding: 18px; }
   .poster-art { margin-bottom: 14px; }
   .poster-subtitle { font-size: 16px; margin-bottom: 12px; }
   .poster-tracks a { font-size: 11px; }
+}
+@media (max-width: 700px), (max-height: 700px) {
+  .poster-stage { align-items: flex-start; padding-top: 54px; }
+  .poster-sheet { width: min(680px, calc(100% - 32px)); transform: none; transition: none; }
 }
 @media (prefers-reduced-motion: reduce) { .poster-sheet { transition: none; transform: none; } }

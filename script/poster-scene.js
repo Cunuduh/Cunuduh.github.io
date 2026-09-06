@@ -34,7 +34,7 @@ export function createPosterScene({ stage, sheet, select, initialIndex = 0 }) {
   }
   function paintWatercolour(source) {
     const now = performance.now();
-    if (disposed || !context || !source?.width || !source?.height || now - lastWash < 80) return;
+    if (disposed || !context || !source?.width || !source?.height || now - lastWash < 1000 / 12) return;
     lastWash = now;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const width = Math.max(1, Math.floor(sheet.offsetWidth * dpr));
@@ -43,15 +43,17 @@ export function createPosterScene({ stage, sheet, select, initialIndex = 0 }) {
       wash.width = washWidth = width;
       wash.height = washHeight = height;
     }
+    const washTop = Math.ceil(height / 2);
+    const destinationHeight = height - washTop;
     const sourceRatio = source.width / source.height;
-    const targetRatio = width / height;
+    const targetRatio = width / destinationHeight;
     let sx = 0; let sy = 0; let sw = source.width; let sh = source.height;
     if (sourceRatio > targetRatio) { sw = source.height * targetRatio; sx = (source.width - sw) / 2; }
     else { sh = source.width / targetRatio; sy = (source.height - sh) / 2; }
     try {
       context.clearRect(0, 0, width, height);
       context.globalAlpha = .35;
-      context.drawImage(source, sx, sy, sw, sh, 0, 0, width, height);
+      context.drawImage(source, sx, sy, sw, sh, 0, washTop, width, destinationHeight);
       context.globalAlpha = 1;
       sheet.classList.add('poster-live-wash');
     } catch {

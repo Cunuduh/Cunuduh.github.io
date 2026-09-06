@@ -37,6 +37,16 @@ async function buildCD(T) {
   canvas.hidden = true;
   canvas.setAttribute('aria-hidden', 'true');
   document.body.append(canvas);
+  // A small hit surface keeps touch-action:none local to the projected disc.
+  // The renderer itself remains transparent to page controls and scrolling.
+  const touchSurface = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  touchSurface.setAttribute('class', 'cd-touch-surface');
+  touchSurface.style.display = 'none';
+  touchSurface.setAttribute('aria-hidden', 'true');
+  const touchRegion = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  touchRegion.setAttribute('class', 'cd-touch-region');
+  touchSurface.append(touchRegion);
+  document.body.append(touchSurface);
 
   // Reflected light needs to blend with the page behind the CD, not with the
   // opaque/transparent contents of the CD renderer itself.
@@ -53,7 +63,7 @@ async function buildCD(T) {
   controls.className = 'cd-controls';
   controls.hidden = true;
   controls.setAttribute('role', 'toolbar');
-  controls.setAttribute('aria-label', 'CD controls. Drag the clear centre to move; drag the outer disc to turn.');
+  controls.setAttribute('aria-label', 'CD controls. Drag the centre to move, drag the edge to flip, or twist with two fingers to rotate.');
   document.body.append(controls);
   const scene = new T.Scene();
   const camera = new T.PerspectiveCamera(35, 1, .1, 30);
@@ -208,20 +218,25 @@ async function buildCD(T) {
   const label = document.createElement('canvas');
   label.width = label.height = 2048;
   const ink = label.getContext('2d');
-  ink.fillStyle = '#202020'; ink.font = '20px sans-serif';
+  // Canvas text does not inherit the page's font stack on Safari. Wait for
+  // the bundled face before painting so the label has the same geometry there.
+  await document.fonts.ready;
+  await Promise.all([document.fonts.load('20px "Fake Receipt"'), document.fonts.load('100px "Inter"')]);
+  const cdFont = '"Inter", sans-serif';
+  const microFont = '"Fake Receipt", monospace'; 
+  ink.fillStyle = '#202020'; ink.font = `20px ${microFont}`;
   const rimText = 'GLAE ALEJO  •  GODOT GAMES  •  FOUR EARLY EXPERIMENTS  •  INTERACTIVE ARCHIVE  •  ';
   [...rimText.repeat(2)].forEach((letter, i) => {
     const angle = i / (rimText.length * 2) * Math.PI * 2;
     ink.save(); ink.translate(1024, 1024); ink.rotate(angle); ink.fillText(letter, 0, -956); ink.restore();
   });
   const labelArtwork = { left: 440, top: 1365, right: 1608, bottom: 1700 };
-  ink.fillStyle = '#6f9fc2'; ink.fillRect(labelArtwork.left, labelArtwork.top, labelArtwork.right - labelArtwork.left, labelArtwork.bottom - labelArtwork.top);
-  ink.fillStyle = '#e1e4e3'; ink.font = 'bold 100px sans-serif'; ink.fillText('GODOT GAMES', 490, 1455);
-  ink.font = 'bold 43px monospace';
-  ink.fillText('GLAE ALEJO / VOL. 01', 490, 1500);
-  ink.fillText('04 TRACKS · MADE IN GODOT', 490, 1543);
-  ink.font = 'bold 60px sans-serif'; ink.fillText('PRESS LABEL', 490, 1610);
-  ink.fillText('TO OPEN TRACKS', 490, 1678);
+  ink.fillStyle = '#5b8fb8'; ink.fillRect(labelArtwork.left, labelArtwork.top, labelArtwork.right - labelArtwork.left, labelArtwork.bottom - labelArtwork.top);
+  ink.fillStyle = '#e1e4e3'; ink.font = `bold 100px ${cdFont}`; ink.fillText('GODOT GAMES', 490, 1465);
+  ink.font = `bold 43px ${microFont}`;
+  ink.fillText('GLAE ALEJO / VOL. 01', 490, 1525);
+  ink.fillText('04 TRACKS · MADE IN GODOT', 490, 1568);
+  ink.font = `bold 60px ${cdFont}`; ink.fillText('PRESS HERE TO OPEN TRACKS', 490, 1650);
   for (let x = 1450; x < 1580; x += 7) ink.fillRect(x, 1430, 1 + (x % 4), 230);
   const labelMap = new T.CanvasTexture(label);
   labelMap.colorSpace = T.SRGBColorSpace;
@@ -229,8 +244,37 @@ async function buildCD(T) {
   const print = new T.Mesh(ring(.58, radius - .01), new T.MeshStandardMaterial({ map: labelMap, transparent: true, roughness: .64, metalness: .05, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
   print.position.z = .021;
   disc.add(print);
+  const labelFeedbackWidth = (labelArtwork.right - labelArtwork.left) / 2048 * radius * 2;
+  const labelFeedbackHeight = (labelArtwork.bottom - labelArtwork.top) / 2048 * radius * 2;
+  const labelFeedback = new T.Group();
+  labelFeedback.position.set(
+    ((labelArtwork.left + labelArtwork.right) / 4096 - .5) * radius * 2,
+    (.5 - (labelArtwork.top + labelArtwork.bottom) / 4096) * radius * 2,
+    .031,
+  );
+  const labelTint = new T.Mesh(
+    new T.PlaneGeometry(labelFeedbackWidth, labelFeedbackHeight),
+    new T.MeshBasicMaterial({ color: 0x284f6d, transparent: true, opacity: .16, depthWrite: false }),
+  );
+  const labelCorners = [
+    new T.Vector3(-labelFeedbackWidth / 2, -labelFeedbackHeight / 2, 0),
+    new T.Vector3(labelFeedbackWidth / 2, -labelFeedbackHeight / 2, 0),
+    new T.Vector3(labelFeedbackWidth / 2, labelFeedbackHeight / 2, 0),
+    new T.Vector3(-labelFeedbackWidth / 2, labelFeedbackHeight / 2, 0),
+  ];
+  const labelBorder = new T.LineLoop(
+    new T.BufferGeometry().setFromPoints(labelCorners),
+    new T.LineBasicMaterial({ color: 0xe1e4e3, transparent: true, opacity: .95 }),
+  );
+  labelFeedback.add(labelTint, labelBorder);
+  labelFeedback.visible = false;
+  labelFeedback.renderOrder = 3;
+  labelTint.raycast = () => {};
+  labelBorder.raycast = () => {};
+  disc.add(labelFeedback);
   // Transparent hub materials otherwise render as opaque in the shadow map.
   disc.traverse(item => { if (item.isMesh && item.material !== plastic) item.castShadow = true; });
+  labelFeedback.traverse(item => { item.castShadow = false; });
   print.castShadow = false;
   const shadowMaterial = new T.ShadowMaterial({ color: 0x202020, opacity: .28 });
   shadowMaterial.name = 'cd-key-shadow-pcss';
@@ -363,6 +407,8 @@ async function buildCD(T) {
   let active = false, raf = 0, last = 0, accumulator = 0, fadeStarted = 0;
   const fadeDuration = 350;
   let retiring = null, pointer = null, focusDrop = false;
+  const touches = new Map();
+  const captures = new Set();
   let suppressClickUntil = 0;
   const step = 1 / 120;
   const previousPosition = new T.Vector3(), currentPosition = new T.Vector3();
@@ -374,15 +420,22 @@ async function buildCD(T) {
   const rotation = new T.Quaternion();
   const axisX = new T.Vector3(1, 0, 0), axisY = new T.Vector3(0, 1, 0);
   const axisZ = new T.Vector3(0, 0, 1), discWorld = new T.Vector3(), lightVector = new T.Vector3();
+  const projected = new T.Vector3();
+  const touchOutline = [];
+  let touchDiameter = 300;
   const faceNormal = new T.Vector3(), reflected = new T.Vector3(), hitPoint = new T.Vector3();
   const discWorldRotation = new T.Quaternion();
   let hoverX = 0, hoverY = 0, hoverPointerType = '';
-  let hoverState = '';
+  let hoverState = '', labelHover = false;
   function clearHover(resetPointer = true) {
+    const wasLabelHover = labelHover;
     if (resetPointer) hoverPointerType = '';
     if (hoverState) document.body.classList.remove('cd-hover');
     hoverState = '';
+    labelHover = false;
+    labelFeedback.visible = false;
     document.body.style.removeProperty('--cd-cursor');
+    return wasLabelHover;
   }
   function setHover(state) {
     if (state === hoverState) return;
@@ -450,6 +503,7 @@ async function buildCD(T) {
     anchor.scale.setScalar(diameter / innerHeight * worldHeight / (radius * 2));
     anchor.position.set(((rect.left + rect.width / 2) / innerWidth - .5) * worldHeight * camera.aspect, (.5 - (rect.top + rect.height / 2) / innerHeight) * worldHeight, 0);
     anchor.updateMatrixWorld(true);
+    touchSurface.setAttribute('viewBox', `0 0 ${innerWidth} ${innerHeight}`);
     bounceAnchor.position.copy(anchor.position);
     bounceAnchor.scale.copy(anchor.scale);
     bounceAnchor.quaternion.copy(anchor.quaternion);
@@ -460,6 +514,19 @@ async function buildCD(T) {
   }
   function render() {
     anchor.updateMatrixWorld(true);
+    if (active) {
+      touchOutline.length = 0;
+      for (let i = 0; i < 48; i++) {
+        const angle = i / 48 * Math.PI * 2;
+        projected.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
+        disc.localToWorld(projected).project(camera);
+        touchOutline.push({ x: (projected.x * .5 + .5) * innerWidth, y: (-projected.y * .5 + .5) * innerHeight, angle });
+      }
+      touchRegion.setAttribute('points', touchOutline.map(p => `${p.x},${p.y}`).join(' '));
+      touchDiameter = Math.max(44,
+        Math.max(...touchOutline.map(p => p.x)) - Math.min(...touchOutline.map(p => p.x)),
+        Math.max(...touchOutline.map(p => p.y)) - Math.min(...touchOutline.map(p => p.y)));
+    }
     disc.getWorldPosition(shadowDiscCenter);
     disc.getWorldQuaternion(discWorldRotation);
     shadowDiscBasisX.copy(axisX).applyQuaternion(discWorldRotation).normalize();
@@ -530,33 +597,80 @@ async function buildCD(T) {
     return raycaster.intersectObject(disc, true)[0];
   }
   function updateHoverAt(x, y) {
-    if (!active || !hoverPointerType || document.querySelector('dialog[open]')) { clearHover(false); return; }
-    if (pointer) { setHover('grabbing'); return; }
+    if (!active || !hoverPointerType || document.querySelector('dialog[open]')) { return clearHover(false); }
+    if (pointer) {
+      labelHover = false; labelFeedback.visible = false;
+      setHover('grabbing'); return false;
+    }
     mouse.set(x / innerWidth * 2 - 1, 1 - y / innerHeight * 2);
     raycaster.setFromCamera(mouse, camera);
     const contact = raycaster.intersectObject(disc, true)[0];
-    if (!contact) { clearHover(false); return; }
-    setHover(retiring || focusDrop ? 'wait' : labelContact(contact) ? 'pointer' : 'grab');
+    if (!contact) { return clearHover(false); }
+    const onLabel = labelContact(contact);
+    const labelChanged = onLabel !== labelHover;
+    labelHover = onLabel;
+    labelFeedback.visible = onLabel;
+    setHover(retiring || focusDrop ? 'wait' : 'grab');
+    return labelChanged;
   }
   function updateHover(event) {
-    if (event.pointerType === 'touch' || isUiExempt(event.target)) { clearHover(); return; }
+    if (event.pointerType === 'touch' || isUiExempt(event.target)) {
+      if (clearHover() && active && !raf) render();
+      return;
+    }
     hoverPointerType = event.pointerType || 'mouse'; hoverX = event.clientX; hoverY = event.clientY;
-    updateHoverAt(hoverX, hoverY);
+    if (updateHoverAt(hoverX, hoverY) && active && !raf) render();
   }
   function grabHeight(q) {
     const normal = new T.Vector3(0, 0, 1).applyQuaternion(q);
     // Only the user's hold target needs geometric clearance; Rapier resolves release.
     return radius * Math.sqrt(Math.max(0, 1 - normal.z ** 2)) + thickness / 2 + .08;
   }
+  function capturePointer(id) {
+    touchRegion.setPointerCapture(id);
+    captures.add(id);
+  }
+  function dropCapture(id) {
+    captures.delete(id);
+    if (touchRegion.hasPointerCapture(id)) touchRegion.releasePointerCapture(id);
+  }
+  function touchContact(event) {
+    const contact = hit(event);
+    if (contact || event.pointerType !== 'touch' || event.target !== touchRegion || !active || document.querySelector('dialog[open]')) return contact;
+    // The transparent hub and padded rim remain grabbable even when the
+    // physical mesh has a hole or is nearly edge-on.
+    const nearest = touchOutline.reduce((best, p) => {
+      const distance = Math.hypot(p.x - event.clientX, p.y - event.clientY);
+      return !best || distance < best.distance ? { ...p, distance } : best;
+    }, null);
+    if (nearest?.distance <= 24) {
+      return { point: disc.localToWorld(new T.Vector3(Math.cos(nearest.angle) * radius, Math.sin(nearest.angle) * radius, 0)) };
+    }
+    const normal = axisZ.clone().applyQuaternion(disc.getWorldQuaternion(new T.Quaternion()));
+    const plane = new T.Plane().setFromNormalAndCoplanarPoint(normal, disc.getWorldPosition(new T.Vector3()));
+    const point = raycaster.ray.intersectPlane(plane, new T.Vector3());
+    if (point && disc.worldToLocal(point.clone()).length() < radius) return { point };
+    return null;
+  }
   document.addEventListener('pointerdown', event => {
     if (event.button !== 0 || event.target.closest('.cd-controls, dialog[open]')) return;
-    const contact = hit(event); if (!contact) return;
+    const contact = touchContact(event); if (!contact) return;
     event.preventDefault(); event.stopImmediatePropagation();
     if (retiring || focusDrop) return;
+    if (event.pointerType === 'touch' && pointer) {
+      if (pointer.type !== 'touch' || touches.size >= 2) return;
+      touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (touches.size === 2) beginTouchGesture();
+      capturePointer(event.pointerId);
+      return;
+    }
+    if (pointer) return;
     const local = disc.worldToLocal(contact.point.clone());
-    const move = Math.hypot(local.x, local.y) < .59;
-    pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, time: performance.now(), pressed: performance.now(), moved: false, move,
+    const move = Math.hypot(local.x, local.y) < (event.pointerType === 'touch' ? radius * .8 : .59);
+    pointer = { id: event.pointerId, type: event.pointerType, rotationScale: event.pointerType === 'touch' ? Math.PI * 2 / touchDiameter : .008, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, time: performance.now(), pressed: performance.now(), moved: false, move,
       onLabel: labelContact(contact) };
+    if (event.pointerType === 'touch') touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    capturePointer(event.pointerId);
     targetPosition.copy(body.translation()); targetRotation.copy(body.rotation());
     throwVelocity.set(0, 0, 0); spinVelocity.set(0, 0, 0);
     body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
@@ -567,10 +681,42 @@ async function buildCD(T) {
     pointer.offset = targetPosition.clone().sub(anchor.worldToLocal(dragPoint.clone()));
     document.body.classList.add('cd-dragging'); wake();
   }, true);
+  function touchPair() { return [...touches.values()]; }
+  function beginTouchGesture() {
+    const pair = touchPair(); if (pair.length !== 2) return;
+    const [a, b] = pair;
+    pointer.moved = true; pointer.onLabel = false;
+    throwVelocity.set(0, 0, 0); spinVelocity.set(0, 0, 0);
+    const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+    mouse.set(cx / innerWidth * 2 - 1, 1 - cy / innerHeight * 2);
+    raycaster.setFromCamera(mouse, camera);
+    if (!raycaster.ray.intersectPlane(dragPlane, dragPoint)) return;
+    pointer.gesture = { cx, cy, angle: Math.atan2(b.y - a.y, b.x - a.x), offset: targetPosition.clone().sub(anchor.worldToLocal(dragPoint.clone())) };
+    pointer.moved = true; pointer.move = true;
+  }
   document.addEventListener('pointermove', event => {
     updateHover(event);
-    if (!pointer || pointer.id !== event.pointerId) return;
+    if (event.pointerType === 'touch' && touches.has(event.pointerId)) touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (!pointer || (pointer.id !== event.pointerId && !touches.has(event.pointerId))) return;
     event.preventDefault();
+    if (pointer.gesture && touches.size >= 2) {
+      const pair = touchPair();
+      const [a, b] = pair;
+      const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+      mouse.set(cx / innerWidth * 2 - 1, 1 - cy / innerHeight * 2);
+      raycaster.setFromCamera(mouse, camera);
+      if (raycaster.ray.intersectPlane(dragPlane, dragPoint)) targetPosition.copy(anchor.worldToLocal(dragPoint.clone()).add(pointer.gesture.offset));
+      const angle = Math.atan2(b.y - a.y, b.x - a.x);
+      let deltaAngle = angle - pointer.gesture.angle;
+      if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
+      if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
+      rotation.setFromAxisAngle(axisZ, -deltaAngle);
+      targetRotation.premultiply(rotation);
+      pointer.gesture.cx = cx; pointer.gesture.cy = cy; pointer.gesture.angle = angle;
+      pointer.x = event.clientX; pointer.y = event.clientY; pointer.time = performance.now(); wake();
+      return;
+    }
+    if (event.pointerType === 'touch' && touches.size > 1) return;
     const now = performance.now(), elapsed = Math.max((now - pointer.time) / 1000, .008);
     if (Math.hypot(event.clientX - pointer.startX, event.clientY - pointer.startY) > 7) pointer.moved = true;
     if (pointer.onLabel && !pointer.moved) return;
@@ -583,7 +729,7 @@ async function buildCD(T) {
         targetPosition.copy(next);
       }
     } else {
-      const dx = (event.clientX - pointer.x) * .008, dy = (event.clientY - pointer.y) * .008;
+      const dx = (event.clientX - pointer.x) * pointer.rotationScale, dy = (event.clientY - pointer.y) * pointer.rotationScale;
       rotation.setFromAxisAngle(axisY, dx); targetRotation.premultiply(rotation);
       rotation.setFromAxisAngle(axisX, dy); targetRotation.premultiply(rotation);
       targetPosition.z = Math.max(targetPosition.z, grabHeight(targetRotation));
@@ -601,13 +747,38 @@ async function buildCD(T) {
     body.setLinvel(stale ? { x: 0, y: 0, z: 0 } : throwVelocity, true);
     body.setAngvel(stale || tracks ? { x: 0, y: 0, z: 0 } : spinVelocity, true);
     pointer = null; suppressClickUntil = performance.now() + 400;
+    touches.clear();
+    for (const id of [...captures]) dropCapture(id);
     document.body.classList.remove('cd-dragging'); sync(); wake();
     if (tracks) document.dispatchEvent(new Event('cd-open-games'));
   }
-  document.addEventListener('pointerup', release);
-  document.addEventListener('pointercancel', release);
-  addEventListener('blur', () => { release({ type: 'pointercancel' }); clearHover(); });
-  document.addEventListener('pointerleave', clearHover);
+  document.addEventListener('pointerup', event => {
+    if (event.pointerType === 'touch' && touches.has(event.pointerId)) {
+      touches.delete(event.pointerId);
+      dropCapture(event.pointerId);
+      if (pointer && touches.size === 1) {
+        const [remaining] = touches.entries();
+        pointer.id = remaining[0]; pointer.x = remaining[1].x; pointer.y = remaining[1].y; pointer.gesture = null;
+        pointer.startX = pointer.x; pointer.startY = pointer.y; pointer.onLabel = false;
+        pointer.time = performance.now(); pointer.moved = true; pointer.move = true;
+        throwVelocity.set(0, 0, 0); spinVelocity.set(0, 0, 0);
+        mouse.set(pointer.x / innerWidth * 2 - 1, 1 - pointer.y / innerHeight * 2);
+        raycaster.setFromCamera(mouse, camera);
+        if (raycaster.ray.intersectPlane(dragPlane, dragPoint)) pointer.offset = targetPosition.clone().sub(anchor.worldToLocal(dragPoint.clone()));
+        return;
+      }
+    }
+    release(event);
+  });
+  document.addEventListener('pointercancel', event => {
+    if (captures.has(event.pointerId)) release({ type: 'pointercancel' });
+  });
+  touchRegion.addEventListener('lostpointercapture', event => {
+    if (captures.has(event.pointerId)) release({ type: 'pointercancel' });
+  });
+  document.addEventListener('cd-open-games', () => release({ type: 'pointercancel' }));
+  addEventListener('blur', () => { release({ type: 'pointercancel' }); if (clearHover() && active && !raf) render(); });
+  document.addEventListener('pointerleave', () => { if (clearHover() && active && !raf) render(); });
   document.addEventListener('click', event => {
     if (event.detail === 0 || event.target.closest('.cd-controls, dialog[open]')) return;
     if (performance.now() < suppressClickUntil || hit(event)) { event.preventDefault(); event.stopImmediatePropagation(); }
@@ -621,7 +792,7 @@ async function buildCD(T) {
   function hide() {
     release(); active = false; retiring = null; fadeStarted = 0; body.sleep();
     clearHover();
-    canvas.hidden = controls.hidden = true; canvas.style.display = controls.style.display = 'none';
+    canvas.hidden = controls.hidden = touchSurface.hidden = true; canvas.style.display = controls.style.display = touchSurface.style.display = 'none';
     bounceCanvas.hidden = true; bounceCanvas.style.display = 'none';
     renderer.clear(); bounceRenderer.clear(); cancelAnimationFrame(raf); raf = 0; accumulator = 0;
   }
@@ -660,6 +831,7 @@ async function buildCD(T) {
     canvas.style.opacity = reduced.matches ? '1' : '0'; canvas.style.filter = '';
     bounceCanvas.style.opacity = canvas.style.opacity; bounceCanvas.style.filter = '';
     position();
+    touchSurface.hidden = false; touchSurface.style.display = 'block';
     const q = new T.Quaternion().setFromEuler(new T.Euler(reduced.matches ? 0 : .35, reduced.matches ? 0 : -.2, -.16));
     body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
     body.setTranslation({ x: 0, y: 0, z: reduced.matches ? .002 : 5 / anchor.scale.x }, true);

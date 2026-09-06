@@ -26,10 +26,9 @@
   const unavailable = (message, error) => {
     fail(message, error);
     const hint = document.querySelector(".interaction-hint");
-    if (hint) {
-      const detail = error?.message || String(error || "");
-      hint.textContent = `WATERCOLOUR UNAVAILABLE: ${message}${detail ? ` (${detail})` : ""}`;
-    }
+    // WebGPU diagnostics belong in the console; never expose browser-specific
+    // compiler errors in the receipt artwork.
+    hint?.setAttribute("hidden", "");
   };
 
   async function start() {
@@ -72,6 +71,12 @@
     const automaticSplashInterval = 1875;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const receipt = document.querySelector(".receipt-shell");
+    let paused = document.hidden || simulationDisabled();
+    let frameInFlight = false;
+    let frameTimer = null;
+    let lastFrame = performance.now();
+    let nextAutomaticSplash = lastFrame + 1500;
+    let lastSubmitTime = 0;
     const ringSlots = new Array(ringCapacity).fill(null);
     const ringBacking = new ArrayBuffer(ringCapacity * ringStride);
     const ringFloats = new Float32Array(ringBacking);
@@ -273,7 +278,8 @@
         let detail = periodicNoise(turn, 23u, ring.seed + 19.7) - 0.5;
         let direction = vec2f(cos(particle.angle + particle.drift), sin(particle.angle + particle.drift));
         let samplePosition = ring.center + direction * max(particle.radial, 0.001);
-        let paperUv = samplePosition / vec2f(frame.aspect, 1.0) * 2.3 + vec2f(ring.seed * 0.013, ring.seed * 0.021);
+        // All splashes share the same fixed paper terrain beneath the wash.
+        let paperUv = samplePosition / vec2f(frame.aspect, 1.0) * 2.3;
         let paperValue = textureSampleLevel(paper, paperSampler, paperUv, 0.0).r - 0.72;
         let localMaximum = ring.maxRadius * (1.0 + coarse * 0.15 + detail * 0.105 + paperValue * 0.075);
         let progress = clamp(age / ${propagationDuration.toFixed(1)}, 0.0, 1.0);
@@ -747,16 +753,15 @@
         output.local = corner;
         output.strength = ring.strength;
         output.drying = smoothstep(0.0, ${propagationDuration.toFixed(1)}, age);
-        output.retreatVariation = mix(
-          retreatVariation(particle.angle / TAU, ring.seed),
-          retreatVariation(neighbour.angle / TAU, ring.seed),
-          corner.y
-        );
-        output.pigmentConcentration = mix(
-          pigmentConcentration(particle.angle / TAU, ring.seed),
-          pigmentConcentration(neighbour.angle / TAU, ring.seed),
-          corner.y
-        );
+        // Every strip endpoint has corner.y equal to exactly 0 or 1.  Avoid
+        // evaluating the expensive angular fields for the endpoint we discard.
+        if (corner.y < 0.5) {
+          output.retreatVariation = retreatVariation(particle.angle / TAU, ring.seed);
+          output.pigmentConcentration = pigmentConcentration(particle.angle / TAU, ring.seed);
+        } else {
+          output.retreatVariation = retreatVariation(neighbour.angle / TAU, ring.seed);
+          output.pigmentConcentration = pigmentConcentration(neighbour.angle / TAU, ring.seed);
+        }
         let particleTurn = particle.angle / TAU;
         var neighbourTurn = neighbour.angle / TAU;
         if (neighbourTurn < particleTurn) { neighbourTurn += 1.0; }
@@ -812,9 +817,11 @@
           cloudBlend.y
         );
         let washDensity = 0.50 + washFlow * 0.20 + washBreakup * 0.08 + cloud * 0.55;
-        let paperSize = vec2f(textureDimensions(paper));
-        let paperStep = 3.0 / paperSize;
         let paperValue = textureSample(paper, paperSampler, input.paperUv).r;
+        // Supplying the mip level keeps this overload accepted by older WGSL
+        // implementations, including Safari's WebGPU compiler.
+        let paperSize = vec2f(textureDimensions(paper, 0u));
+        let paperStep = 3.0 / paperSize;
         let surroundingPaper = (
           textureSample(paper, paperSampler, input.paperUv + vec2f(paperStep.x, 0.0)).r +
           textureSample(paper, paperSampler, input.paperUv - vec2f(paperStep.x, 0.0)).r +
@@ -823,16 +830,21 @@
         ) * 0.25;
         let localPit = smoothstep(0.012, 0.05, surroundingPaper - paperValue);
         let darkPore = 1.0 - smoothstep(0.59, 0.67, paperValue);
-        let paperResistance = clamp(max(localPit, darkPore * 0.9), 0.0, 1.0);
-        let washDeposition = 1.0 - paperResistance * 0.75;
-        let tideDeposition = 1.0 - paperResistance * 0.69;
+        let paperResistance = clamp(darkPore * 0.9, 0.0, 1.0);
+        // Wash settles into hollows; the darker exposed tooth still limits
+        // coverage so the paper remains visibly white between strokes.
+        let washDeposition = clamp(1.0 + localPit * 0.24 - paperResistance * 0.58, 0.25, 1.18);
+        let tideDeposition = clamp(1.0 + localPit * 0.18 - paperResistance * 0.64, 0.20, 1.12);
         let wash = rear * front * 0.42 * washDensity * input.strength *
           pigmentRemaining * washDeposition;
         let tideWidth = select(mix(0.23, 0.38, cloud), 0.16, input.local.x >= 0.0);
         let tideFalloff = select(1.45, 2.0, input.local.x >= 0.0);
         let tideDistance = abs(input.local.x) / tideWidth;
         let tideProfile = exp(-pow(tideDistance, tideFalloff));
-        let tideDensity = 0.60 + input.pigmentConcentration * 0.48;
+        // As water retreats, a restrained amount of pigment gathers at the
+        // tide line without changing the broad wash colour.
+        let dryingTide = mix(1.0, 1.06, smoothstep(0.5, 1.0, input.drying));
+        let tideDensity = (0.60 + input.pigmentConcentration * 0.48) * dryingTide;
         let tide = tideProfile * 0.94 * tideDensity * input.strength *
           pigmentRemaining * tideDeposition;
         return vec4f(wash, tide, 0.0, 0.0);
@@ -1027,8 +1039,7 @@
     }
 
     function drawFrame(now, delta) {
-      if (simulationDisabled()) return;
-      if (!intensityTexture) return;
+      if (paused || simulationDisabled() || (frameInFlight && !reducedMotion) || !intensityTexture) return false;
       expireRings(now);
       let activeParticleCount = 0;
       for (let slot = ringCapacity - 1; slot >= 0; slot--) {
@@ -1095,6 +1106,14 @@
       pass.end();
       device.queue.submit([encoder.finish()]);
       window.paintPosterWatercolour?.(canvas);
+      frameInFlight = true;
+      lastSubmitTime = performance.now();
+      const completion = device.queue.onSubmittedWorkDone?.() || Promise.resolve();
+      completion.catch(() => {}).then(() => {
+        frameInFlight = false;
+        scheduleFrame(Math.max(0, 1000 / 24 - (performance.now() - lastSubmitTime)));
+      });
+      return true;
     }
 
     function initializeParticles(slot, ring, initialAge) {
@@ -1209,11 +1228,12 @@
       const fittedScale = Math.min(requestedScale, maximumDimension / Math.max(cssWidth, cssHeight));
       const width = Math.max(1, Math.round(cssWidth * fittedScale));
       const height = Math.max(1, Math.round(cssHeight * fittedScale));
-      if (canvas.width === width && canvas.height === height) return;
+      if (canvas.width === width && canvas.height === height && intensityTexture) return false;
       canvas.width = width;
       canvas.height = height;
       rebuildIntensityTargets();
       drawFrame(performance.now() / 1000, 0);
+      return true;
     }
 
     document.addEventListener("click", event => {
@@ -1224,23 +1244,51 @@
     });
     window.addEventListener("resize", resizeCanvas, { passive: true });
 
+    function scheduleFrame(delay = 1000 / 24) {
+      if (reducedMotion || paused || frameTimer !== null) return;
+      frameTimer = window.setTimeout(() => {
+        frameTimer = null;
+        const timestamp = performance.now();
+        const delta = Math.min(Math.max((timestamp - lastFrame) / 1000, 0), 0.1);
+        lastFrame = timestamp;
+        if (!paused && timestamp >= nextAutomaticSplash) {
+          addRandomSplash();
+          nextAutomaticSplash = timestamp + automaticSplashInterval;
+        }
+        drawFrame(timestamp / 1000, delta);
+      }, Math.max(0, Math.ceil(delay)));
+    }
+
+    function updatePauseState() {
+      const shouldPause = document.hidden || simulationDisabled();
+      if (shouldPause) {
+        paused = true;
+        if (frameTimer !== null) {
+          window.clearTimeout(frameTimer);
+          frameTimer = null;
+        }
+        return;
+      }
+      paused = false;
+      lastFrame = performance.now();
+      nextAutomaticSplash = lastFrame + automaticSplashInterval;
+      const resized = resizeCanvas();
+      if (reducedMotion) {
+        if (!resized) drawFrame(lastFrame / 1000, 0);
+      } else {
+        scheduleFrame(0);
+      }
+    }
+
+    document.addEventListener("visibilitychange", updatePauseState);
+    document.addEventListener("simpleviewchange", updatePauseState);
+    smallDevice.addEventListener?.("change", updatePauseState);
+
     device.queue.writeBuffer(ringBuffer, 0, ringBacking);
     resizeCanvas();
     if (reducedMotion) return;
 
-    let lastFrame = performance.now();
-    let nextAutomaticSplash = lastFrame + 1500;
-    function frame(timestamp) {
-      const delta = Math.min(Math.max((timestamp - lastFrame) / 1000, 0), 0.05);
-      lastFrame = timestamp;
-      if (!simulationDisabled() && timestamp >= nextAutomaticSplash) {
-        addRandomSplash();
-        nextAutomaticSplash = timestamp + automaticSplashInterval;
-      }
-      drawFrame(timestamp / 1000, delta);
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
+    scheduleFrame(0);
   }
 
   let started = false;
