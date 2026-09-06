@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-CA">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width">
   <title>Glae Alejo Portfolio</title>
+  <script src="script/accessibility.js"></script>
+  <meta name="description" content="Glae is a first-year University of Toronto student interested in computational cognition, robotics, AI tooling, and creative software.">
   <link rel="preconnect" href="https://rsms.me/">
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
   <link rel="stylesheet" href="style/index.css">
+  <link rel="stylesheet" href="style/archive.css">
+  <link rel="stylesheet" href="style/cd-scene.css">
 </head>
 <body>
+<button class="simple-view-toggle" type="button" aria-pressed="false">Simple View</button>
 <canvas id="watercolor-background" aria-hidden="true"></canvas>
 <div class="receipt-shell">
 <main>
@@ -18,24 +23,22 @@
           <p class="hero-description">UOFT MPS</p>
           <h1 class="hero-name">glae.a</h1>
         </div>
-        <div class="button-container">
-          <details class="dropdown-container">
-            <summary class="button">Contact Me</summary>
-            <div class="dropdown-content">
-              <a href="mailto:glae.alejo@gmail.com">Email Me</a>
-              <a href="https://github.com/Cunuduh">GitHub</a>
-              <a href="https://www.linkedin.com/in/glae-alejo-a76292354">LinkedIn</a>
-              <a href="https://www.instagram.com/cunuduh.invalid/">Instagram</a>
-              <a href="https://cunuduh.itch.io/">itch.io</a>
-              <a href="https://x.com/glaeal">X</a>
-            </div>
-          </details>
-        </div>
+        <nav aria-label="Contact and social links">
+          <ul class="contact-links">
+            <li><a href="mailto:glae.alejo@gmail.com">Email</a></li>
+            <li><a href="https://github.com/Cunuduh">GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/glae-alejo-a76292354">LinkedIn</a></li>
+            <li><a href="https://www.instagram.com/cunuduh.invalid/">Instagram</a></li>
+            <li><a href="https://cunuduh.itch.io/">itch.io</a></li>
+            <li><a href="https://x.com/glaeal">X</a></li>
+          </ul>
+        </nav>
       </div>
     </div>
-    <h2 id="programs">Projects I've Worked On</h2>
-    <p>Miscellaneous personal/school programs and projects</p>
-    <p>Click the links to see the source code on GitHub</p>
+    <h2 id="about">About Me</h2>
+    <p>Hi I'm Glae, a first-year student in Mathematical &amp; Physical Sciences at University of Toronto, St. George campus and a member of Victoria College. I'm interested in Cognitive Science's Computational Cognition stream and hope to pursue Computer Science as a second major.</p>
+    <p>I create software for Robotics, AI and Games. Outside programming I draw my heart out and sing my heart out.</p>
+    <h2 id="programs">Selected Projects</h2>
     <div class="project-list">
       <div class="project-table-header" aria-hidden="true">
         <span>LINK</span>
@@ -43,18 +46,10 @@
       </div>
       <div class="project-item">
         <h3>
-          <a href="https://github.com/Cunuduh/Cunuduh.github.io">This Website</a>
-        </h3>
-        <div class="project-summary">
-          <p>My personal website built with static HTML and CSS in a receipt-inspired style.</p>
-        </div>
-      </div>
-      <div class="project-item">
-        <h3>
           <a href="https://github.com/Cunuduh/hurricane-template">Hurricane Robotics</a>
         </h3>
         <div class="project-summary">
-          <p>VEX Robotics codebase for Team 296A's 2025-2026 season, built in Rust using Vexide library.</p>
+          <p>Programming lead for VEX Team 296A, which reached Provincials. Built the 2025–2026 robot software in Rust with Vexide, working on a differential drive, two-wheel odometry, PID, and RAMSETE control.</p>
         </div>
       </div>
       <div class="project-item">
@@ -74,27 +69,33 @@
         </div>
       </div>
     </div>
-    <h2 id="games">My Godot Games</h2>
-    <p>Most of these were made for school, hence the simple 1-bit pixel-art style and simple game mechanics.</p>
-    <p>Click the image captions to play the games on itch.io!</p>
-    <ul class="gallery">
-      <li class="gallery-item">
-        <img src="img/was-it-worth-it.png" alt="Was It Worth It? logo" loading="lazy">
-        <a class="button" href="https://cunuduh.itch.io/was-it-worth-it">Was It Worth It?</a>
-      </li>
-      <li class="gallery-item">
-        <img src="img/speakeasy_simulator.png" alt="Speakeasy Simulator logo" loading="lazy">
-        <a class="button" href="https://cunuduh.itch.io/speakeasy-simulator">Speakeasy Simulator</a>
-      </li>
-      <li class="gallery-item">
-        <img src="img/stay_safe_in_science.png" alt="Stay Safe in Science logo" loading="lazy">
-        <a class="button" href="https://cunuduh.itch.io/stay-safe-in-science">Stay Safe in Science</a>
-      </li>
-      <li class="gallery-item">
-        <img src="img/illegal_aliens.png" alt="Illegal Aliens logo" loading="lazy">
-        <a class="button" href="https://cunuduh.itch.io/illegal-aliens-game">Illegal Aliens</a>
-      </li>
-    </ul>
+    <h2 id="experience">Work Experience</h2>
+    <div class="experience-list">
+      <article class="experience-entry">
+        <h3><a href="https://cloverlabs.ai/">Clover</a></h3>
+        <p class="experience-role">Paid Work Trial</p>
+        <p>Worked with ComfyUI on Echos, Clover's short-form video product.</p>
+      </article>
+      <article class="experience-entry">
+        <h3><a href="https://www.hipposhq.com/">Hippos Software</a></h3>
+        <p class="experience-role">QA Co-op · Grade 11</p>
+        <p>Tested new point-of-sale software. Wrote reproducible bug reports in Azure DevOps and tracked fixes with a remote development team.</p>
+      </article>
+    </div>
+    <h2 id="exploring">What I'm Working On</h2>
+    <p>AI tooling and local inference, including bringing agent capabilities to ComfyUI with custom nodes for tool calling, branching and agent iteration. I'm also experimenting with image-generation models for pixel art.</p>
+    <p>On the creative side, I'm developing a Toronto-set game with a high-quality pixel-art look and themes of Artificial Superintelligence and the nature of Agent Swarms. Please stay tuned when the game becomes presentable!</p>
+    <h2 id="community">Beyond Solo Projects</h2>
+    <p>At Hack the North 2025, I worked on <a href="https://devpost.com/software/prism-4az51d">Prism</a>, a misinformation-analysis project using five AI agents.</p>
+    <section class="archive-section" id="games" aria-labelledby="games-title">
+      <div class="archive-heading"><div><h2 id="games-title">Earlier Godot Games</h2><p>Small games from my high-school years, mostly made for class, exploring 1-bit art and game mechanics.</p></div><button class="archive-trigger cd-ticket" type="button" data-cd-drop aria-label="Drop CD"><span class="cd-ticket-meta" aria-hidden="true">INTERACTIVE ARCHIVE / 04 TRACKS</span><span class="cd-ticket-title">DROP CD <span aria-hidden="true">↓</span></span><span class="cd-ticket-bars" aria-hidden="true"></span><span class="cd-ticket-foot" aria-hidden="true">GLAE ALEJO · VOL. 01</span></button></div>
+      <ol class="archive-fallback archive-game-list">
+        <li><a href="https://cunuduh.itch.io/was-it-worth-it"><span>01</span> Was It Worth It?</a></li>
+        <li><a href="https://cunuduh.itch.io/speakeasy-simulator"><span>02</span> Speakeasy Simulator</a></li>
+        <li><a href="https://cunuduh.itch.io/stay-safe-in-science"><span>03</span> Stay Safe in Science</a></li>
+        <li><a href="https://cunuduh.itch.io/illegal-aliens-game"><span>04</span> Illegal Aliens</a></li>
+      </ol>
+    </section>
     <footer>
       <div class="print-wall">
         <div class="soy-seal">
@@ -108,21 +109,20 @@
           <li><img src="img/logos/codex.svg" alt="Codex"></li>
         </ul>
       </div>
-      <h3>Connect</h3>
-      <ul class="footer-links">
-        <li><a href="mailto:glae.alejo@gmail.com">Email Me</a></li>
-        <li><a href="https://github.com/Cunuduh">GitHub</a></li>
-        <li><a href="https://www.linkedin.com/in/glae-alejo-a76292354">LinkedIn</a></li>
-        <li><a href="https://www.instagram.com/cunuduh.invalid/">Instagram</a></li>
-        <li><a href="https://cunuduh.itch.io/">itch.io</a></li>
-        <li><a href="https://x.com/glaeal">X (Formerly Twitter)</a></li>
-      </ul>
+      <p><a href="https://github.com/Cunuduh/Cunuduh.github.io">About this site:</a> static HTML and CSS, a receipt-inspired layout, and interactive watercolour rendered with WebGPU.</p>
       <p class="receipt-end">THANK YOU FOR VISITING</p>
       <p class="interaction-hint">CLICK THE BACKGROUND TO PAINT</p>
-      <img class="receipt-barcode" src="style/receipt-barcode.svg" alt="">
+      <a href="https://cunuduh.github.io"><img class="receipt-barcode" src="style/receipt-barcode.svg" alt="Scan to visit cunuduh.github.io"></a>
     </footer>
 </main>
 </div>
+<dialog class="archive-dialog" id="archive-dialog" aria-labelledby="archive-dialog-title">
+  <button class="archive-close" type="button" data-archive-close aria-label="Close archive">×</button>
+  <div class="archive-dialog-inner"><p class="archive-kicker" id="archive-dialog-kicker"></p><h2 id="archive-dialog-title"></h2><div class="archive-dialog-content"></div></div>
+</dialog>
 <script src="script/watercolor.js"></script>
+<script src="script/archive-data.js"></script>
+<script src="script/archive.js"></script>
+<script type="module" src="script/cd-scene.js"></script>
 </body>
 </html>

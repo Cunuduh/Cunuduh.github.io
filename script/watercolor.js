@@ -10,8 +10,17 @@
   );
   if (isSafari) document.documentElement.classList.add("safari");
 
+  const smallDevice = window.matchMedia("(max-width: 767px), (pointer: coarse)");
+  const simulationDisabled = () => smallDevice.matches ||
+    document.documentElement.classList.contains("simple-view");
+  if (smallDevice.matches) {
+    canvas.hidden = true;
+    document.querySelector(".interaction-hint")?.setAttribute("hidden", "");
+    return;
+  }
+
   const fail = (message, error) => {
-    console.error(`[watercolor] ${message}`, error || "");
+    console.error(`[watercolour] ${message}`, error || "");
   };
 
   const unavailable = (message, error) => {
@@ -19,7 +28,7 @@
     const hint = document.querySelector(".interaction-hint");
     if (hint) {
       const detail = error?.message || String(error || "");
-      hint.textContent = `WATERCOLOR UNAVAILABLE: ${message}${detail ? ` (${detail})` : ""}`;
+      hint.textContent = `WATERCOLOUR UNAVAILABLE: ${message}${detail ? ` (${detail})` : ""}`;
     }
   };
 
@@ -34,15 +43,6 @@
     if (!adapter) {
       unavailable("No WebGPU adapter is available.");
       return;
-    }
-    const adapterInfo = adapter.info || {};
-    console.info("[watercolor] WebGPU adapter:", adapterInfo);
-    const adapterDescription = ["vendor", "architecture", "device", "description"]
-      .map(field => String(adapterInfo[field] || ""))
-      .join(" ")
-      .toLowerCase();
-    if (/software|swiftshader|llvmpipe|fallback/.test(adapterDescription)) {
-      console.warn("[watercolor] WebGPU appears to be using a software or fallback adapter.", adapterInfo);
     }
     const device = await adapter.requestDevice();
     device.lost.then(info => unavailable(`WebGPU device lost: ${info.message || info.reason}`));
@@ -140,7 +140,7 @@
         bitmap.close?.();
         return texture;
       } catch (error) {
-        console.warn("[watercolor] Paper texture unavailable; using procedural steering.", error);
+        console.warn("[watercolour] Paper texture unavailable; using procedural steering.", error);
         const texture = device.createTexture({
           label: "watercolour paper fallback",
           size: [1, 1],
@@ -388,7 +388,7 @@
         let cell = gridCell(point);
         let particleDirection = normalize(point - ring.center);
         let particleWorldVelocity = particleDirection * particle.radialVelocity;
-        let particleMass = 1.0 + abs(particle.radialVelocity) / 0.045;
+        let particleMass = 1.0 + min(abs(particle.radialVelocity) / 0.045, 1.0);
         var velocityTarget = 0.0;
         var radialCorrection = 0.0;
         var contactWeight = 0.0;
@@ -438,7 +438,7 @@
                 abs(otherNext.radialVelocity),
                 along
               );
-              let otherMass = 1.0 + otherSpeed / 0.045;
+              let otherMass = 1.0 + min(otherSpeed / 0.045, 1.0);
               let ownNormalVelocity = dot(particleWorldVelocity, away);
               let otherNormalVelocity = dot(otherWorldVelocity, away);
               let approachSpeed = otherNormalVelocity - ownNormalVelocity;
@@ -502,6 +502,10 @@
           let resolvedVelocity = velocityTarget / contactWeight;
           let correction = radialCorrection / contactWeight;
           particle.radialVelocity = mix(particle.radialVelocity, resolvedVelocity, 0.62);
+          // Dissipate compression so crowded fronts do not launch long inward folds.
+          if (particle.radialVelocity < 0.0) {
+            particle.radialVelocity *= exp(-3.0 * frame.delta);
+          }
           particle.radial = max(
             0.0002,
             particle.radial + clamp(correction, -0.004, 0.004) * 0.72
@@ -770,10 +774,20 @@
         let front = 1.0 - smoothstep(0.04, 0.18, input.local.x);
         let dryingFront = mix(-1.15, 0.26, input.drying);
         let retreatEnvelope = 1.0 - smoothstep(0.86, 1.0, input.drying);
-        let retreatEdge = dryingFront + input.retreatVariation * retreatEnvelope;
+        let turn = input.pigmentCoordinates.x;
+        let pigmentSeed = input.pigmentCoordinates.y;
+        // Evaluate the fine edge in fragments so particle spacing cannot flatten it.
+        let edgeWarp = (periodicNoise(turn, 17u, pigmentSeed + 701.3) - 0.5) * 0.022;
+        let edgeDetail = periodicNoise(turn + edgeWarp, 79u, pigmentSeed + 739.1) - 0.5;
+        let edgeFibre = periodicNoise(turn + edgeWarp + edgeDetail * 0.006,
+          157u, pigmentSeed + 773.7) - 0.5;
+        let retreatEdge = dryingFront +
+          (input.retreatVariation + edgeDetail * 0.11 + edgeFibre * 0.045) * retreatEnvelope;
+        let edgeSoftness = mix(0.035, 0.075,
+          periodicNoise(turn, 31u, pigmentSeed + 809.2));
         let pigmentRemaining = smoothstep(
-          retreatEdge - 0.105,
-          retreatEdge + 0.065,
+          retreatEdge - edgeSoftness,
+          retreatEdge + edgeSoftness * 0.75,
           input.local.x
         );
         let washFlow = periodicNoise(
@@ -786,7 +800,18 @@
           47u,
           input.pigmentCoordinates.y + 647.1
         );
-        let washDensity = 0.84 + washFlow * 0.22 + washBreakup * 0.08;
+        let cloudPosition = input.paperUv * vec2f(22.0, 16.0);
+        let cloudCell = floor(cloudPosition);
+        let cloudFraction = fract(cloudPosition);
+        let cloudBlend = cloudFraction * cloudFraction * (3.0 - 2.0 * cloudFraction);
+        let cloud = mix(
+          mix(hash(dot(cloudCell, vec2f(1.0, 57.0))),
+              hash(dot(cloudCell + vec2f(1.0, 0.0), vec2f(1.0, 57.0))), cloudBlend.x),
+          mix(hash(dot(cloudCell + vec2f(0.0, 1.0), vec2f(1.0, 57.0))),
+              hash(dot(cloudCell + vec2f(1.0, 1.0), vec2f(1.0, 57.0))), cloudBlend.x),
+          cloudBlend.y
+        );
+        let washDensity = 0.50 + washFlow * 0.20 + washBreakup * 0.08 + cloud * 0.55;
         let paperSize = vec2f(textureDimensions(paper));
         let paperStep = 3.0 / paperSize;
         let paperValue = textureSample(paper, paperSampler, input.paperUv).r;
@@ -799,15 +824,15 @@
         let localPit = smoothstep(0.012, 0.05, surroundingPaper - paperValue);
         let darkPore = 1.0 - smoothstep(0.59, 0.67, paperValue);
         let paperResistance = clamp(max(localPit, darkPore * 0.9), 0.0, 1.0);
-        let washDeposition = 1.0 - paperResistance * 0.94;
-        let tideDeposition = 1.0 - paperResistance * 0.86;
+        let washDeposition = 1.0 - paperResistance * 0.75;
+        let tideDeposition = 1.0 - paperResistance * 0.69;
         let wash = rear * front * 0.42 * washDensity * input.strength *
           pigmentRemaining * washDeposition;
-        let tideWidth = select(0.24, 0.16, input.local.x >= 0.0);
+        let tideWidth = select(mix(0.23, 0.38, cloud), 0.16, input.local.x >= 0.0);
         let tideFalloff = select(1.45, 2.0, input.local.x >= 0.0);
         let tideDistance = abs(input.local.x) / tideWidth;
         let tideProfile = exp(-pow(tideDistance, tideFalloff));
-        let tideDensity = 0.44 + input.pigmentConcentration * 0.86;
+        let tideDensity = 0.60 + input.pigmentConcentration * 0.48;
         let tide = tideProfile * 0.94 * tideDensity * input.strength *
           pigmentRemaining * tideDeposition;
         return vec4f(wash, tide, 0.0, 0.0);
@@ -1002,6 +1027,7 @@
     }
 
     function drawFrame(now, delta) {
+      if (simulationDisabled()) return;
       if (!intensityTexture) return;
       expireRings(now);
       let activeParticleCount = 0;
@@ -1068,6 +1094,7 @@
       pass.draw(3);
       pass.end();
       device.queue.submit([encoder.finish()]);
+      window.paintPosterWatercolour?.(canvas);
     }
 
     function initializeParticles(slot, ring, initialAge) {
@@ -1190,6 +1217,7 @@
     }
 
     document.addEventListener("click", event => {
+      if (simulationDisabled()) return;
       if (receipt?.contains(event.target)) return;
       addSplash(canvasPosition(event.clientX, event.clientY), 0.235, reducedMotion);
       if (reducedMotion) drawFrame(performance.now() / 1000, 0);
@@ -1205,7 +1233,7 @@
     function frame(timestamp) {
       const delta = Math.min(Math.max((timestamp - lastFrame) / 1000, 0), 0.05);
       lastFrame = timestamp;
-      if (timestamp >= nextAutomaticSplash) {
+      if (!simulationDisabled() && timestamp >= nextAutomaticSplash) {
         addRandomSplash();
         nextAutomaticSplash = timestamp + automaticSplashInterval;
       }
@@ -1215,5 +1243,12 @@
     requestAnimationFrame(frame);
   }
 
-  start().catch(error => unavailable("WebGPU initialization failed.", error));
+  let started = false;
+  function startIfEnabled() {
+    if (started || simulationDisabled()) return;
+    started = true;
+    start().catch(error => unavailable("WebGPU initialization failed.", error));
+  }
+  document.addEventListener("simpleviewchange", startIfEnabled);
+  startIfEnabled();
 })();
